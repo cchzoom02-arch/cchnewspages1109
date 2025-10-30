@@ -1,0 +1,1429 @@
+<!doctype html>
+<html lang="zh-Hant">
+ <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>新聞發布業務進度</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800&amp;display=swap" rel="stylesheet">
+  <style>
+  body {
+    box-sizing: border-box;
+  }
+  :root{
+    --ink:#111111;
+    --muted:#6B7280;
+    --line:#E6E6E6;
+    --accent:#D80000;
+    --soft-red:#FFFAFA;
+    --soft-red-line:#FFDDDD;
+    --blue:#2563EB;
+    --green:#059669;
+    --purple:#7C3AED;
+    --soft-purple:#F8F5FF;
+    --soft-purple-line:#E0D4FF;
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+    color:var(--ink); background:#fff; margin:0; line-height:1.5;
+  }
+  .wrap{max-width:1200px;margin:40px auto;padding:0 24px}
+  h1{font-weight:800;font-size:52px;letter-spacing:.5px;text-align:center;margin:0 0 28px}
+  
+  /* 原始卡片樣式 */
+  .card{
+    display:grid; grid-template-columns:140px 1fr 240px; gap:24px;
+    border:2px solid var(--line); border-radius:16px; padding:16px 20px; margin:0 0 20px;
+    background:#fff; position:relative;
+  }
+  .card.accent{border-color:var(--soft-red-line); background:var(--soft-red)}
+  .card.purple{border-color:var(--soft-purple-line); background:var(--soft-purple)}
+  .date{
+    padding-right:20px; border-right:2px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+  }
+  .date .label,.date .weekday{font-size:14px;color:var(--muted);letter-spacing:1px}
+  .date .day{font-size:56px;font-weight:800;line-height:1}
+  .card.accent .date .label,
+  .card.accent .date .day,
+  .card.accent .date .weekday{color:var(--accent)}
+  .card.purple .date .label,
+  .card.purple .date .day,
+  .card.purple .date .weekday{color:var(--purple)}
+  .content{display:flex; align-items:center}
+  .content h2{margin:0; font-size:40px; line-height:1.15; font-weight:800}
+  .content h2.red{color:var(--accent)}
+  .content h2.purple{color:var(--purple)}
+  .meta{
+    padding-left:20px; border-left:2px solid var(--line);
+    background:#F7F7F7; border-radius:12px; padding:12px 16px; display:flex; flex-direction:column; justify-content:center
+  }
+  .meta .row{margin:4px 0; font-size:16px}
+  .meta .key{color:var(--muted); margin-right:6px}
+
+  /* 管理功能樣式 */
+  .admin-btn{
+    position:fixed; top:20px; right:20px; 
+    background:var(--blue); color:white; border:none; padding:12px 20px; 
+    border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;
+    box-shadow:0 4px 12px rgba(37,99,235,0.3); z-index:100;
+  }
+  .admin-btn:hover{background:#1d4ed8}
+
+  .edit-btn{
+    position:absolute; top:16px; right:16px;
+    background:var(--green); color:white; border:none; padding:8px 12px;
+    border-radius:6px; cursor:pointer; font-size:12px; opacity:0; transition:opacity 0.3s;
+    display:none;
+  }
+  .admin-mode .edit-btn{opacity:1; display:block}
+  .edit-btn:hover{background:#047857}
+
+  .add-btn{
+    background:var(--blue); color:white; border:none; padding:16px 32px;
+    border-radius:12px; cursor:pointer; font-size:16px; font-weight:600;
+    margin:20px auto; display:none; box-shadow:0 4px 12px rgba(37,99,235,0.3);
+  }
+  .admin-mode .add-btn{display:block}
+  .add-btn:hover{background:#1d4ed8}
+
+  /* 模態框樣式 */
+  .modal{
+    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;
+  }
+  .modal.show{display:flex}
+  .modal-content{
+    background:white; padding:32px; border-radius:16px; width:500px; max-width:90%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3); max-height:90vh; overflow-y:auto;
+  }
+  .modal h3{margin:0 0 24px; font-size:24px; text-align:center; font-weight:800}
+  
+  .form-group{margin:20px 0}
+  .form-group label{display:block; margin-bottom:8px; font-weight:600; color:var(--ink)}
+  .form-group input, .form-group select, .form-group textarea{
+    width:100%; padding:12px 16px; border:2px solid var(--line); border-radius:8px;
+    font-size:16px; font-family:inherit; transition:border-color 0.3s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus{
+    outline:none; border-color:var(--blue);
+  }
+  .form-group textarea{resize:vertical; min-height:100px}
+  
+  .btn{
+    background:var(--blue); color:white; border:none; padding:12px 24px;
+    border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; margin:8px 4px;
+    transition:background-color 0.3s;
+  }
+  .btn:hover{background:#1d4ed8}
+  .btn.secondary{background:var(--muted)}
+  .btn.secondary:hover{background:#4b5563}
+  .btn.danger{background:var(--accent)}
+  .btn.danger:hover{background:#b91c1c}
+
+  /* 人員管理樣式 */
+  .staff-section{
+    margin:24px 0; padding:20px; background:#f8f9fa; border-radius:12px;
+  }
+  .staff-section h4{margin:0 0 16px; font-size:18px; font-weight:600}
+  .staff-list{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:12px; margin:16px 0;
+  }
+  .staff-item{
+    background:white; padding:12px 16px; border-radius:8px; border:1px solid var(--line);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .remove-staff{
+    background:var(--accent); color:white; border:none; padding:6px 12px;
+    border-radius:4px; cursor:pointer; font-size:12px;
+  }
+  .remove-staff:hover{background:#b91c1c}
+
+  /* 檔案上傳樣式 */
+  .file-upload{
+    border:2px dashed var(--line); border-radius:8px; padding:30px;
+    text-align:center; cursor:pointer; transition:all 0.3s;
+    background:#fafafa;
+  }
+  .file-upload:hover{border-color:var(--blue); background:#f0f8ff}
+  .file-upload input{display:none}
+  .file-upload p{margin:0; color:var(--muted)}
+  .file-upload small{color:var(--muted); font-size:12px}
+
+  .checkbox-group{
+    display:flex; align-items:center; gap:8px; margin:16px 0;
+  }
+  .checkbox-group input[type="checkbox"]{
+    width:auto; margin:0;
+  }
+
+  @media (max-width:900px){
+    .card{grid-template-columns:1fr; }
+    .date{border-right:0; border-bottom:2px solid var(--line); padding-bottom:12px; margin-bottom:8px}
+    .meta{border-left:0; margin-top:8px}
+    .content h2{font-size:28px}
+    .date .day{font-size:42px}
+    .modal-content{width:95%; padding:20px}
+    .admin-btn{position:static; margin:20px auto; display:block; width:fit-content}
+  }
+</style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body><button class="admin-btn" onclick="showLoginModal()">管理後台</button>
+  <div class="wrap">
+   <h1>新聞發布業務進度</h1>
+   <div style="text-align:center; margin:20px 0"><button class="add-btn" onclick="addNews()">+ 新增新聞</button> <button class="add-btn" onclick="showHistoryModal()" style="background:var(--muted); margin-left:12px">📚 歷史紀錄</button>
+   </div>
+   <div id="newsContainer"></div>
+  </div><div id="loginModal" class="modal">
+   <div class="modal-content">
+    <h3>🔐 管理員登入</h3>
+    <div class="form-group"><label>請輸入管理密碼：</label> <input type="password" id="adminPassword" placeholder="請輸入密碼" onkeypress="if(event.key==='Enter') login()">
+    </div>
+    <div style="text-align:center"><button class="btn" onclick="login()">登入</button> <button class="btn secondary" onclick="closeModal('loginModal')">取消</button>
+    </div>
+   </div>
+  </div><div id="editModal" class="modal">
+   <div class="modal-content">
+    <h3 id="editTitle">編輯新聞</h3>
+    <div class="form-group"><label>📅 發布日期：</label> <input type="date" id="editDate" required>
+    </div>
+    <div class="form-group"><label>📰 新聞標題：</label> <textarea id="editNewsTitle" placeholder="請輸入新聞標題" required></textarea>
+    </div>
+    <div class="form-group"><label>✏️ 編輯人員：</label> <select id="editEditor" required> <option value="">請選擇編輯人員</option> </select>
+    </div>
+    <div class="form-group"><label>🎬 影片人員：</label> <select id="editVideo" required> <option value="">請選擇影片人員</option> </select>
+    </div>
+    <div class="form-group"><label>🎨 平面人員：</label> <select id="editGraphic" required> <option value="">請選擇平面人員</option> </select>
+    </div>
+    <div class="checkbox-group"><input type="checkbox" id="editAccent"> <label for="editAccent">⭐ 重點新聞（紫色標示）</label>
+    </div>
+    <div style="text-align:center; margin-top:32px"><button class="btn" onclick="saveNews()">💾 儲存</button> <button class="btn danger" onclick="deleteNews()" id="deleteBtn">✅ 完成新聞</button> <button class="btn secondary" onclick="closeModal('editModal')">取消</button>
+    </div>
+   </div>
+  </div><div id="historyModal" class="modal">
+   <div class="modal-content" style="width:900px; max-width:95%; max-height:90vh">
+    <h3>📚 新聞歷史紀錄</h3><div class="staff-section">
+     <h4>🔍 搜尋條件</h4>
+     <div style="display:grid; grid-template-columns:1fr 1fr 2fr auto; gap:12px; margin-bottom:16px"><select id="searchYear"> <option value="">選擇年份</option> </select> <select id="searchMonth"> <option value="">選擇月份</option> <option value="1">1月</option> <option value="2">2月</option> <option value="3">3月</option> <option value="4">4月</option> <option value="5">5月</option> <option value="6">6月</option> <option value="7">7月</option> <option value="8">8月</option> <option value="9">9月</option> <option value="10">10月</option> <option value="11">11月</option> <option value="12">12月</option> </select> <input type="text" id="searchKeyword" placeholder="輸入關鍵字搜尋標題內容..."> <button class="btn" onclick="searchHistory()">搜尋</button>
+     </div>
+     <div style="text-align:center"><button class="btn secondary" onclick="clearSearch()" style="font-size:14px; padding:8px 16px">清除條件</button> <span id="searchResults" style="margin-left:16px; color:var(--muted); font-size:14px"></span>
+     </div>
+    </div><div class="staff-section">
+     <h4>📰 歷史新聞 (<span id="historyCount">0</span>)</h4>
+     <div id="historyList" style="max-height:400px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:16px; background:white"></div>
+    </div>
+    <div style="text-align:center; margin-top:32px"><button class="btn" onclick="downloadHistoryExcel()" style="background:var(--green); margin-right:12px">📥 下載Excel</button> <button class="btn secondary" onclick="closeModal('historyModal')">關閉</button>
+    </div>
+   </div>
+  </div><div id="staffModal" class="modal">
+   <div class="modal-content" style="width:800px; max-width:95%">
+    <h3>👥 管理後台</h3><div class="staff-section">
+     <h4>📰 新聞管理</h4>
+     <div style="text-align:center; margin:16px 0"><button class="btn" onclick="addNews()">➕ 新增新聞</button>
+     </div>
+     <div id="adminNewsList" style="max-height:300px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:16px; background:white"></div>
+    </div>
+    <div class="staff-section">
+     <h4>📊 Excel檔案匯入</h4>
+     <div class="file-upload" onclick="document.getElementById('excelFile').click()"><input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="importExcel(event)">
+      <p>📁 點擊上傳Excel檔案</p><small>支援格式：.xlsx, .xls, .csv<br>
+       欄位：員工編號、姓名、職位（編輯/影片/平面）</small>
+     </div>
+    </div>
+    <div class="staff-section">
+     <h4>➕ 手動新增人員</h4>
+     <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; margin-bottom:16px"><input type="text" id="staffId" placeholder="員工編號"> <input type="text" id="staffName" placeholder="姓名"> <select id="staffRole"> <option value="editor">編輯</option> <option value="video">影片</option> <option value="graphic">平面</option> </select> <button class="btn" onclick="addStaff()">新增</button>
+     </div>
+    </div>
+    <div class="staff-section">
+     <h4>✏️ 編輯人員 (<span id="editorCount">0</span>)</h4>
+     <div id="editorList" class="staff-list"></div>
+    </div>
+    <div class="staff-section">
+     <h4>🎬 影片人員 (<span id="videoCount">0</span>)</h4>
+     <div id="videoList" class="staff-list"></div>
+    </div>
+    <div class="staff-section">
+     <h4>🎨 平面人員 (<span id="graphicCount">0</span>)</h4>
+     <div id="graphicList" class="staff-list"></div>
+    </div>
+    <div style="text-align:center; margin-top:32px"><button class="btn" onclick="closeModal('staffModal')">✅ 完成</button>
+    </div>
+   </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+// 【重要】將這裡替換成您在步驟二部署後複製的 Web 應用程式 URL
+// 範例：const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxMts432B19jaCgYXSn-UoK8ytUYVDxrkPbeRuGnzVUhjHH-HMS478cZhy4I8Ntx87j/exec"; 
+
+// 初始變數 (現在由 Apps Script 載入資料)
+let newsData = []; 
+let staffData = {editor: [], video: [], graphic: []};
+let isAdminMode = false;
+let editingId = null;
+let autoDeleteTimer = null;
+let historyData = []; 
+let filteredHistory = []; 
+
+// ------------------------------------------------------------------
+// 後端 API 相關函數
+// ------------------------------------------------------------------
+
+// 統一的 API 讀取函數
+async function loadData() {
+  try {
+    showNotification('🔄 正在從 Google Sheets 載入資料...', 'info');
+    const response = await fetch(SCRIPT_URL, {
+      method: 'GET',
+      redirect: 'follow', // 處理 Apps Script 的重新導向
+    });
+    
+    if (!response.ok) {
+        throw new Error(`網路錯誤: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+
+    if (data.error) {
+        // 捕捉 Apps Script 後端返回的錯誤
+        throw new Error(`Apps Script 錯誤: ${data.error}`);
+    }
+
+    newsData = data.newsData || [];
+    staffData = data.staffData || {editor: [], video: [], graphic: []};
+    historyData = data.historyData || [];
+    
+    // 首次載入完成後，執行一次渲染和刪除檢查
+    renderNews();
+    updateStaffSelects(); // 確保人員選單在載入後立即更新
+    
+    showNotification('✅ 資料載入成功！', 'success');
+
+  } catch (error) {
+    console.error('載入資料失敗:', error);
+    showNotification(`❌ 載入資料失敗：${error.message}，請檢查 Apps Script 部署與連線狀態。`, 'error');
+  }
+}
+
+// 統一的 API 寫入函數
+async function saveData(action) {
+  // **後端密碼驗證**：密碼在前端，必須透過 POST 傳給後端驗證。
+  const password = 'cch4156'; 
+  
+  // 確定要傳送的資料結構
+  let dataToSend = {};
+  if (action === 'saveNews' || action === 'restoreNews') {
+      dataToSend = { newsData, historyData };
+  } else if (action === 'deleteHistory') {
+      dataToSend = { historyData };
+  } else if (action === 'saveStaff') {
+      dataToSend = { staffData };
+  }
+  
+  try {
+    showNotification(`🔄 正在儲存資料 (${action})...`, 'info');
+    const response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'application/json', // 必須是 application/json
+      },
+      body: JSON.stringify({
+        action: action, // 告訴 Apps Script 要執行什麼動作
+        password: password,
+        data: dataToSend
+      }),
+    });
+    
+    if (!response.ok) {
+        // 雖然 Apps Script 通常會以 200 回應，但以防萬一
+        throw new Error(`網路錯誤: ${response.status} ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+
+    if (result.status === "error") {
+      throw new Error(result.message);
+    }
+    
+    showNotification('✅ 資料已成功儲存到 Google Sheets！', 'success');
+    return true;
+
+  } catch (error) {
+    console.error('儲存資料失敗:', error);
+    // 針對 CORS 錯誤提供更明確的指示
+    if (error.message.includes("Failed to fetch") || error.message.includes("CORS")) {
+        showNotification(`❌ 資料儲存失敗：連線錯誤。請檢查 1. Apps Script URL 是否正確；2. Apps Script 部署權限是否設為「任何人」。`, 'error');
+    } else {
+        showNotification(`❌ 資料儲存失敗：${error.message}`, 'error');
+    }
+    return false;
+  }
+}
+
+
+// 自動刪除過期新聞函數 (邏輯不變)
+async function autoDeleteExpiredNews() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const originalNewsData = [...newsData]; 
+  const originalHistoryData = [...historyData];
+
+  const originalNewsLength = newsData.length;
+  
+  const expiredNews = newsData.filter(news => {
+    const newsDate = new Date(news.date);
+    newsDate.setHours(0, 0, 0, 0);
+    return newsDate < today;
+  });
+  
+  if (expiredNews.length > 0) {
+      expiredNews.forEach(news => {
+        const exists = historyData.some(h => h.id === news.id && h.date === news.date);
+        if (!exists) {
+          historyData.push({
+            ...news,
+            archivedDate: new Date().toISOString().split('T')[0]
+          });
+        }
+      });
+      
+      newsData = newsData.filter(news => {
+        const newsDate = new Date(news.date);
+        newsDate.setHours(0, 0, 0, 0);
+        return newsDate >= today;
+      });
+      
+      if (newsData.length < originalNewsLength) {
+        const success = await saveData('saveNews');
+        if (success) {
+            console.log(`自動刪除了 ${originalNewsLength - newsData.length} 則過期新聞，已加入歷史紀錄`);
+        } else {
+             newsData = originalNewsData;
+             historyData = originalHistoryData;
+             console.error('自動刪除操作失敗，資料未儲存到後端。已復原前端資料。');
+        }
+      }
+  }
+}
+
+// 設定自動刪除定時器 (邏輯不變)
+function scheduleAutoDelete() {
+  if (autoDeleteTimer) {
+    clearTimeout(autoDeleteTimer);
+  }
+  
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0); 
+  
+  const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+  
+  autoDeleteTimer = setTimeout(async () => {
+    await autoDeleteExpiredNews();
+    renderNews(); 
+    updateAdminNewsList(); 
+    
+    setInterval(async () => {
+      await autoDeleteExpiredNews();
+      renderNews();
+      updateAdminNewsList();
+    }, 24 * 60 * 60 * 1000); 
+    
+  }, timeUntilMidnight);
+  
+  console.log(`已設定自動刪除定時器，將於 ${tomorrow.toLocaleString()} 執行`);
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', function() {
+  loadData(); 
+});
+
+// 渲染新聞列表 (邏輯不變)
+function renderNews() {
+  const container = document.getElementById('newsContainer');
+  container.innerHTML = '';
+  
+  scheduleAutoDelete();
+  
+  const today = new Date();
+  const sortedNews = [...newsData].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    
+    const isToday = (date) => {
+      const checkDate = new Date(date);
+      return checkDate.toDateString() === today.toDateString();
+    };
+    
+    const aIsToday = isToday(dateA);
+    const bIsToday = isToday(dateB);
+    
+    if (aIsToday && !bIsToday) return -1;
+    if (!aIsToday && bIsToday) return 1;
+    
+    return dateA - dateB;
+  });
+  
+  sortedNews.forEach(news => {
+    const newsDate = new Date(news.date);
+    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+    const dayOfWeek = dayNames[newsDate.getDay()];
+    const dateStr = `${newsDate.getMonth() + 1}/${newsDate.getDate()}`;
+    
+    const isToday = newsDate.toDateString() === today.toDateString();
+    
+    const editor = staffData.editor.find(s => s.id === news.editor);
+    const video = staffData.video.find(s => s.id === news.video);
+    const graphic = staffData.graphic.find(s => s.id === news.graphic);
+    
+    const card = document.createElement('section');
+    let cardClass = 'card';
+    let titleClass = '';
+    
+    if (isToday) {
+      cardClass += ' accent';
+      titleClass = 'red';
+    } else if (news.accent) {
+      cardClass += ' purple';
+      titleClass = 'purple';
+    }
+    
+    card.className = cardClass;
+    card.innerHTML = `
+      <button class="edit-btn" onclick="editNews(${news.id})">編輯</button>
+      <div class="date">
+        <div class="label">預計發布</div>
+        <div class="day">${dateStr}</div>
+        <div class="weekday">禮拜${dayOfWeek}</div>
+      </div>
+      <div class="content">
+        <h2 ${titleClass ? `class="${titleClass}"` : ''}>${news.title}</h2>
+      </div>
+      <aside class="meta">
+        <div class="row"><span class="key">編輯：</span>${news.editor}（${editor ? editor.name : '未指派'}）</div>
+        <div class="row"><span class="key">影片：</span>${news.video}（${video ? video.name : '未指派'}）</div>
+        <div class="row"><span class="key">平面：</span>${news.graphic}（${graphic ? graphic.name : '未指派'}）</div>
+      </aside>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// 登入功能 (邏輯不變)
+function showLoginModal() {
+  if (isAdminMode) {
+    showStaffModal();
+  } else {
+    document.getElementById('loginModal').classList.add('show');
+    document.getElementById('adminPassword').focus();
+  }
+}
+
+function login() {
+  const password = document.getElementById('adminPassword').value;
+  if (password === 'cch4156') {
+    isAdminMode = true;
+    document.body.classList.add('admin-mode');
+    document.querySelector('.admin-btn').textContent = '👥 人員管理';
+    closeModal('loginModal');
+    document.getElementById('adminPassword').value = '';
+    
+    showNotification('✅ 登入成功！現在可以編輯新聞內容了。', 'success');
+  } else {
+    showNotification('❌ 密碼錯誤！請重新輸入。', 'error');
+    document.getElementById('adminPassword').value = '';
+    document.getElementById('adminPassword').focus();
+  }
+}
+
+// 新聞編輯功能 (邏輯不變)
+function editNews(id) {
+  if (!isAdminMode) return;
+  
+  const news = newsData.find(n => n.id === id);
+  if (!news) return;
+  
+  editingId = id;
+  document.getElementById('editTitle').textContent = '📝 編輯新聞';
+  document.getElementById('editDate').value = news.date;
+  document.getElementById('editNewsTitle').value = news.title;
+  document.getElementById('editAccent').checked = news.accent;
+  document.getElementById('deleteBtn').style.display = 'inline-block';
+  
+  updateStaffSelects();
+  document.getElementById('editEditor').value = news.editor;
+  document.getElementById('editVideo').value = news.video;
+  document.getElementById('editGraphic').value = news.graphic;
+  
+  document.getElementById('editModal').classList.add('show');
+}
+
+function addNews() {
+  editingId = null;
+  document.getElementById('editTitle').textContent = '➕ 新增新聞';
+  document.getElementById('editDate').value = '';
+  document.getElementById('editNewsTitle').value = '';
+  document.getElementById('editAccent').checked = false;
+  document.getElementById('deleteBtn').style.display = 'none';
+  
+  updateStaffSelects();
+  document.getElementById('editEditor').value = '';
+  document.getElementById('editVideo').value = '';
+  document.getElementById('editGraphic').value = '';
+  
+  document.getElementById('editModal').classList.add('show');
+}
+
+async function saveNews() {
+  const date = document.getElementById('editDate').value;
+  const title = document.getElementById('editNewsTitle').value.trim();
+  const editor = document.getElementById('editEditor').value;
+  const video = document.getElementById('editVideo').value;
+  const graphic = document.getElementById('editGraphic').value;
+  const accent = document.getElementById('editAccent').checked;
+  
+  if (!date || !title || !editor || !video || !graphic) {
+    showNotification('⚠️ 請填寫所有必填欄位！', 'warning');
+    return;
+  }
+  
+  const originalNewsData = [...newsData]; 
+
+  if (editingId) {
+    const index = newsData.findIndex(n => n.id === editingId);
+    newsData[index] = {
+      id: editingId,
+      date, title, editor, video, graphic, accent
+    };
+  } else {
+    const newId = newsData.length > 0 ? Math.max(...newsData.map(n => parseInt(n.id))) + 1 : 1;
+    newsData.push({
+      id: String(newId), 
+      date, title, editor, video, graphic, accent
+    });
+  }
+  
+  const success = await saveData('saveNews');
+  
+  if (success) {
+      renderNews();
+      updateAdminNewsList();
+      closeModal('editModal');
+  } else {
+      newsData = originalNewsData;
+  }
+}
+
+function deleteNews() {
+  if (!editingId) {
+    showNotification('❌ 無法刪除：找不到要刪除的新聞！', 'error');
+    return;
+  }
+  
+  showConfirmDialog('⚠️ 確定要完成這則新聞嗎？完成後會移至歷史紀錄。', async () => {
+    const newsToDelete = newsData.find(n => n.id === editingId);
+    if (newsToDelete) {
+      const originalNewsData = [...newsData]; 
+      const originalHistoryData = [...historyData];
+
+      const exists = historyData.some(h => h.id === newsToDelete.id && h.date === newsToDelete.date);
+      if (!exists) {
+        historyData.push({
+          ...newsToDelete,
+          archivedDate: new Date().toISOString().split('T')[0] 
+        });
+      }
+      
+      newsData = newsData.filter(n => n.id !== editingId);
+      
+      const success = await saveData('saveNews');
+      
+      if (success) {
+          renderNews();
+          updateAdminNewsList(); 
+          closeModal('editModal');
+      } else {
+          newsData = originalNewsData;
+          historyData = originalHistoryData;
+          showNotification('❌ 完成失敗：資料未儲存到後端！', 'error');
+      }
+      
+    } else {
+      showNotification('❌ 刪除失敗：找不到指定的新聞！', 'error');
+    }
+  });
+}
+
+// 人員管理功能 (邏輯不變)
+function showStaffModal() {
+  updateStaffLists();
+  updateAdminNewsList();
+  document.getElementById('staffModal').classList.add('show');
+}
+
+// 更新管理後台的新聞列表 (邏輯不變)
+function updateAdminNewsList() {
+  const container = document.getElementById('adminNewsList');
+  container.innerHTML = '';
+  
+  if (newsData.length === 0) {
+    container.innerHTML = '<p style="text-align:center; color:var(--muted); margin:20px 0">目前沒有新聞資料</p>';
+    return;
+  }
+  
+  const sortedNews = [...newsData].sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  sortedNews.forEach(news => {
+    const newsDate = new Date(news.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isToday = newsDate.toDateString() === today.toDateString();
+    
+    const editor = staffData.editor.find(s => s.id === news.editor);
+    const video = staffData.video.find(s => s.id === news.video);
+    const graphic = staffData.graphic.find(s => s.id === news.graphic);
+    
+    const newsItem = document.createElement('div');
+    
+    let bgColor = '#fff';
+    let borderColor = 'var(--line)';
+    let titleColor = 'var(--ink)';
+    let starIcon = '';
+    
+    if (isToday) {
+      bgColor = 'var(--soft-red)';
+      borderColor = 'var(--soft-red-line)';
+      titleColor = 'var(--accent)';
+      starIcon = '🔴';
+    } else if (news.accent) {
+      bgColor = 'var(--soft-purple)';
+      borderColor = 'var(--soft-purple-line)';
+      titleColor = 'var(--purple)';
+      starIcon = '🟣';
+    }
+    
+    newsItem.style.cssText = `
+      border: 1px solid ${borderColor}; border-radius: 8px; padding: 12px; margin: 8px 0;
+      background: ${bgColor};
+    `;
+    
+    newsItem.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px">
+        <div style="flex: 1">
+          <div style="font-size: 14px; color: var(--muted); margin-bottom: 4px">
+            📅 ${news.date} ${starIcon}
+          </div>
+          <div style="font-weight: 600; margin-bottom: 8px; color: ${titleColor}">
+            ${news.title}
+          </div>
+          <div style="font-size: 12px; color: var(--muted)">
+            編輯：${editor ? editor.name : '未指派'} | 
+            影片：${video ? video.name : '未指派'} | 
+            平面：${graphic ? graphic.name : '未指派'}
+          </div>
+        </div>
+        <button onclick="editNews(${news.id})" style="
+          background: var(--green); color: white; border: none; padding: 6px 12px;
+          border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;
+        ">編輯</button>
+      </div>
+    `;
+    
+    container.appendChild(newsItem);
+  });
+}
+
+// 更新人員選單 (邏輯不變)
+function updateStaffSelects() {
+  const selects = ['editEditor', 'editVideo', 'editGraphic'];
+  const roles = ['editor', 'video', 'graphic'];
+  
+  selects.forEach((selectId, index) => {
+    const select = document.getElementById(selectId);
+    const currentValue = select.value;
+    select.innerHTML = `<option value="">請選擇${roles[index] === 'editor' ? '編輯' : roles[index] === 'video' ? '影片' : '平面'}人員</option>`;
+    
+    const sortedStaff = [...staffData[roles[index]]].sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+    
+    sortedStaff.forEach(staff => {
+      const option = document.createElement('option');
+      option.value = staff.id;
+      option.textContent = `${staff.id}（${staff.name}）`;
+      select.appendChild(option);
+    });
+    
+    select.value = currentValue;
+  });
+}
+
+// 更新人員列表 (邏輯不變)
+function updateStaffLists() {
+  const roles = ['editor', 'video', 'graphic'];
+  
+  roles.forEach(role => {
+    const container = document.getElementById(`${role}List`);
+    const count = document.getElementById(`${role}Count`);
+    
+    container.innerHTML = '';
+    count.textContent = staffData[role].length;
+    
+    const sortedStaff = [...staffData[role]].sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+
+    sortedStaff.forEach(staff => {
+      const item = document.createElement('div');
+      item.className = 'staff-item';
+      item.innerHTML = `
+        <span><strong>${staff.id}</strong>（${staff.name}）</span>
+        <button class="remove-staff" onclick="removeStaff('${role}', '${staff.id}')">移除</button>
+      `;
+      container.appendChild(item);
+    });
+  });
+}
+
+// 新增人員 (邏輯不變，依賴 saveData 的成功執行)
+async function addStaff() {
+  const id = document.getElementById('staffId').value.trim();
+  const name = document.getElementById('staffName').value.trim();
+  const role = document.getElementById('staffRole').value;
+  
+  if (!id || !name) {
+    showNotification('⚠️ 請填寫員工編號和姓名！', 'warning');
+    return;
+  }
+  
+  const exists = Object.values(staffData).some(roleStaff => 
+    roleStaff.some(staff => String(staff.id) === id) // 確保比較類型一致
+  );
+  
+  if (exists) {
+    showNotification('⚠️ 該員工編號已存在！', 'warning');
+    return;
+  }
+  
+  const originalStaff = [...staffData[role]]; 
+  staffData[role].push({id, name});
+  
+  const success = await saveData('saveStaff');
+
+  if (success) {
+      document.getElementById('staffId').value = '';
+      document.getElementById('staffName').value = '';
+      updateStaffLists();
+      updateStaffSelects();
+  } else {
+      staffData[role] = originalStaff;
+      // 由於 saveData 已經顯示了錯誤訊息，這裡不需要額外顯示
+  }
+}
+
+function removeStaff(role, id) {
+  showConfirmDialog('⚠️ 確定要移除這位人員嗎？', async () => {
+    const originalStaff = [...staffData[role]]; 
+    
+    staffData[role] = staffData[role].filter(staff => String(staff.id) !== id);
+    
+    const success = await saveData('saveStaff');
+
+    if (success) {
+        updateStaffLists();
+        updateStaffSelects();
+    } else {
+        staffData[role] = originalStaff;
+        updateStaffLists();
+        updateStaffSelects();
+        showNotification('❌ 移除失敗：資料未儲存到後端！', 'error');
+    }
+  });
+}
+
+// Excel下載功能 (邏輯不變)
+function downloadHistoryExcel() {
+  if (filteredHistory.length === 0) {
+    showNotification('⚠️ 沒有資料可以下載！請先搜尋或確認有歷史紀錄。', 'warning');
+    return;
+  }
+  
+  const excelData = [];
+  
+  const year = document.getElementById('searchYear').value;
+  const month = document.getElementById('searchMonth').value;
+  const keyword = document.getElementById('searchKeyword').value.trim();
+  
+  let fileName = '新聞歷史紀錄';
+  const currentDate = new Date().toISOString().split('T')[0];
+  
+  if (year || month || keyword) {
+    fileName += '_篩選結果';
+    if (year) fileName += `_${year}年`;
+    if (month) fileName += `_${month}月`;
+    if (keyword) fileName += `_${keyword}`;
+  }
+  fileName += `_${currentDate}.xlsx`;
+  
+  const sortedData = [...filteredHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  sortedData.forEach((news, index) => {
+    const newsDate = new Date(news.date);
+    const editor = staffData.editor.find(s => s.id === news.editor);
+    const video = staffData.video.find(s => s.id === news.video);
+    const graphic = staffData.graphic.find(s => s.id === news.graphic);
+    
+    excelData.push({
+      '序號': index + 1,
+      '發布日期': news.date,
+      '年份': newsDate.getFullYear(),
+      '月份': newsDate.getMonth() + 1,
+      '星期': ['日', '一', '二', '三', '四', '五', '六'][newsDate.getDay()],
+      '新聞標題': news.title,
+      '重點新聞': news.accent ? '是' : '否',
+      '編輯人員編號': news.editor,
+      '編輯人員姓名': editor ? editor.name : '已離職',
+      '影片人員編號': news.video,
+      '影片人員姓名': video ? video.name : '已離職',
+      '平面人員編號': news.graphic,
+      '平面人員姓名': graphic ? graphic.name : '已離職',
+      '歸檔日期': news.archivedDate || '手動歸檔',
+      '標題字數': news.title.length
+    });
+  });
+  
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(excelData);
+  
+  const colWidths = [
+    { wch: 6 },   // 序號
+    { wch: 12 },  // 發布日期
+    { wch: 8 },   // 年份
+    { wch: 8 },   // 月份
+    { wch: 8 },   // 星期
+    { wch: 50 },  // 新聞標題
+    { wch: 10 },  // 重點新聞
+    { wch: 12 },  // 編輯人員編號
+    { wch: 15 },  // 編輯人員姓名
+    { wch: 12 },  // 影片人員編號
+    { wch: 15 },  // 影片人員姓名
+    { wch: 12 },  // 平面人員編號
+    { wch: 15 },  // 平面人員姓名
+    { wch: 12 },  // 歸檔日期
+    { wch: 10 }   // 標題字數
+  ];
+  ws['!cols'] = colWidths;
+  
+  XLSX.utils.book_append_sheet(wb, ws, '新聞歷史紀錄');
+  
+  if (year || month || keyword) {
+    const summaryData = [];
+    
+    summaryData.push({'項目': '搜尋條件', '內容': ''});
+    if (year) summaryData.push({'項目': '年份', '內容': `${year}年`});
+    if (month) summaryData.push({'項目': '月份', '內容': `${month}月`});
+    if (keyword) summaryData.push({'項目': '關鍵字', '內容': keyword});
+    
+    summaryData.push({'項目': '搜尋結果', '內容': `共 ${filteredHistory.length} 筆新聞`});
+    summaryData.push({'項目': '下載時間', '內容': new Date().toLocaleString('zh-TW')});
+    
+    summaryData.push({'項目': '', '內容': ''});
+    summaryData.push({'項目': '統計資料', '內容': ''});
+    
+    const accentCount = sortedData.filter(news => news.accent).length;
+    summaryData.push({'項目': '重點新聞數量', '內容': `${accentCount} 筆`});
+    
+    const editorStats = {};
+    const videoStats = {};
+    const graphicStats = {};
+    
+    sortedData.forEach(news => {
+      const editor = staffData.editor.find(s => s.id === news.editor);
+      const video = staffData.video.find(s => s.id === news.video);
+      const graphic = staffData.graphic.find(s => s.id === news.graphic);
+      
+      const editorName = editor ? editor.name : '已離職';
+      const videoName = video ? video.name : '已離職';
+      const graphicName = graphic ? graphic.name : '已離職';
+      
+      editorStats[editorName] = (editorStats[editorName] || 0) + 1;
+      videoStats[videoName] = (videoStats[videoName] || 0) + 1;
+      graphicStats[graphicName] = (graphicStats[graphicName] || 0) + 1;
+    });
+    
+    summaryData.push({'項目': '', '內容': ''});
+    summaryData.push({'項目': '編輯人員統計', '內容': ''});
+    Object.entries(editorStats).forEach(([name, count]) => {
+      summaryData.push({'項目': name, '內容': `${count} 篇`});
+    });
+    
+    summaryData.push({'項目': '', '內容': ''});
+    summaryData.push({'項目': '影片人員統計', '內容': ''});
+    Object.entries(videoStats).forEach(([name, count]) => {
+      summaryData.push({'項目': name, '內容': `${count} 篇`});
+    });
+    
+    summaryData.push({'項目': '', '內容': ''});
+    summaryData.push({'項目': '平面人員統計', '內容': ''});
+    Object.entries(graphicStats).forEach(([name, count]) => {
+      summaryData.push({'項目': name, '內容': `${count} 篇`});
+    });
+    
+    const summaryWs = XLSX.utils.json_to_sheet(summaryData);
+    summaryWs['!cols'] = [{ wch: 20 }, { wch: 30 }];
+    XLSX.utils.book_append_sheet(wb, summaryWs, '搜尋摘要');
+  }
+  
+  try {
+    XLSX.writeFile(wb, fileName);
+    showNotification(`✅ Excel檔案下載成功！\n檔案名稱：${fileName}\n共 ${filteredHistory.length} 筆資料`, 'success');
+  } catch (error) {
+    showNotification('❌ 下載失敗！請檢查瀏覽器是否支援檔案下載功能。', 'error');
+    console.error('Excel下載錯誤:', error);
+  }
+}
+
+// Excel匯入功能 (邏輯不變)
+async function importExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const originalStaffData = { 
+        editor: [...staffData.editor], 
+        video: [...staffData.video], 
+        graphic: [...staffData.graphic]
+    }; 
+    
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      
+      let imported = 0;
+      let errors = [];
+      
+      jsonData.forEach((row, index) => {
+        const id = String(row['員工編號'] || row['編號'] || '').trim();
+        const name = String(row['姓名'] || row['名字'] || '').trim();
+        const roleText = String(row['職位'] || row['角色'] || '').trim().toLowerCase();
+        
+        if (!id || !name) {
+          errors.push(`第${index + 2}行：缺少員工編號或姓名`);
+          return;
+        }
+        
+        let targetRole = '';
+        if (roleText.includes('編輯') || roleText.includes('editor')) targetRole = 'editor';
+        else if (roleText.includes('影片') || roleText.includes('video')) targetRole = 'video';
+        else if (roleText.includes('平面') || roleText.includes('graphic')) targetRole = 'graphic';
+        else {
+          errors.push(`第${index + 2}行：無法識別職位「${roleText}」`);
+          return;
+        }
+        
+        const exists = Object.values(staffData).some(roleStaff => 
+          roleStaff.some(staff => String(staff.id) === id) // 確保比較類型一致
+        );
+        
+        if (!exists) {
+          staffData[targetRole].push({id, name});
+          imported++;
+        }
+      });
+      
+      const success = await saveData('saveStaff');
+
+      if (success) {
+          let message = `✅ 成功匯入 ${imported} 筆人員資料！`;
+          if (errors.length > 0) {
+            message += `\n\n⚠️ 發現 ${errors.length} 個問題：\n${errors.slice(0, 5).join('\n')}`;
+            if (errors.length > 5) {
+              message += `\n... 還有 ${errors.length - 5} 個問題`;
+            }
+          }
+          showNotification(message, 'success');
+          updateStaffLists();
+          updateStaffSelects();
+      } else {
+          staffData = originalStaffData;
+          updateStaffLists();
+          updateStaffSelects();
+      }
+      
+    } catch (error) {
+      showNotification('❌ 檔案格式錯誤！請確認Excel檔案格式正確。\n\n建議格式：\n- 員工編號 | 姓名 | 職位\n- 職位請填寫：編輯、影片、平面', 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  
+  event.target.value = '';
+}
+
+// 歷史紀錄功能 (邏輯不變)
+function showHistoryModal() {
+  updateYearOptions();
+  clearSearch();
+  document.getElementById('historyModal').classList.add('show');
+}
+
+function updateYearOptions() {
+  const yearSelect = document.getElementById('searchYear');
+  const currentYear = new Date().getFullYear();
+  const years = new Set();
+  
+  historyData.forEach(news => {
+    const year = new Date(news.date).getFullYear();
+    years.add(year);
+  });
+  
+  const startYear = 2025;
+  const endYear = Math.max(currentYear + 1, startYear);
+  for (let i = startYear; i <= endYear; i++) {
+    years.add(i);
+  }
+  
+  yearSelect.innerHTML = '<option value="">選擇年份</option>';
+  [...years].sort((a, b) => b - a).forEach(year => {
+    const option = document.createElement('option');
+    option.value = year;
+    option.textContent = `${year}年`;
+    yearSelect.appendChild(option);
+  });
+}
+
+function searchHistory() {
+  const year = document.getElementById('searchYear').value;
+  const month = document.getElementById('searchMonth').value;
+  const keyword = document.getElementById('searchKeyword').value.trim().toLowerCase();
+  
+  filteredHistory = historyData.filter(news => {
+    const newsDate = new Date(news.date);
+    
+    if (year && newsDate.getFullYear() !== parseInt(year)) {
+      return false;
+    }
+    
+    if (month && (newsDate.getMonth() + 1) !== parseInt(month)) {
+      return false;
+    }
+    
+    if (keyword && !news.title.toLowerCase().includes(keyword)) {
+      return false;
+    }
+    
+    return true;
+  });
+  
+  displayHistoryResults();
+  
+  const resultsSpan = document.getElementById('searchResults');
+  if (year || month || keyword) {
+    resultsSpan.textContent = `找到 ${filteredHistory.length} 筆符合條件的新聞`;
+  } else {
+    resultsSpan.textContent = '';
+  }
+}
+
+function clearSearch() {
+  document.getElementById('searchYear').value = '';
+  document.getElementById('searchMonth').value = '';
+  document.getElementById('searchKeyword').value = '';
+  document.getElementById('searchResults').textContent = '';
+  
+  filteredHistory = [...historyData];
+  displayHistoryResults();
+}
+
+function displayHistoryResults() {
+  const container = document.getElementById('historyList');
+  const countSpan = document.getElementById('historyCount');
+  
+  container.innerHTML = '';
+  countSpan.textContent = filteredHistory.length;
+  
+  if (filteredHistory.length === 0) {
+    container.innerHTML = '<p style="text-align:center; color:var(--muted); margin:20px 0">沒有找到符合條件的歷史新聞</p>';
+    return;
+  }
+  
+  const sortedHistory = [...filteredHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  sortedHistory.forEach(news => {
+    const newsDate = new Date(news.date);
+    const editor = staffData.editor.find(s => s.id === news.editor);
+    const video = staffData.video.find(s => s.id === news.video);
+    const graphic = staffData.graphic.find(s => s.id === news.graphic);
+    
+    const historyItem = document.createElement('div');
+    
+    const bgColor = news.accent ? 'var(--soft-purple)' : '#fff';
+    const borderColor = news.accent ? 'var(--soft-purple-line)' : 'var(--line)';
+    const titleColor = news.accent ? 'var(--purple)' : 'var(--ink)';
+    const starIcon = news.accent ? '🟣' : '';
+    
+    historyItem.style.cssText = `
+      border: 1px solid ${borderColor}; border-radius: 8px; padding: 12px; margin: 8px 0;
+      background: ${bgColor};
+    `;
+    
+    historyItem.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px">
+        <div style="flex: 1">
+          <div style="font-size: 14px; color: var(--muted); margin-bottom: 4px">
+            📅 發布日期：${news.date} ${starIcon}
+            ${news.archivedDate ? `<span style="margin-left: 12px">🗂️ 歸檔：${news.archivedDate}</span>` : ''}
+          </div>
+          <div style="font-weight: 600; margin-bottom: 8px; color: ${titleColor}">
+            ${news.title}
+          </div>
+          <div style="font-size: 12px; color: var(--muted)">
+            編輯：${news.editor}（${editor ? editor.name : '已離職'}） | 
+            影片：${news.video}（${video ? video.name : '已離職'}） | 
+            平面：${news.graphic}（${graphic ? graphic.name : '已離職'}）
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <button onclick="restoreNews('${news.id}', '${news.date}')" style="
+            background: var(--green); color: white; border: none; padding: 4px 8px;
+            border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;
+          ">復原</button>
+          <button onclick="permanentDeleteNews('${news.id}', '${news.date}')" style="
+            background: var(--accent); color: white; border: none; padding: 4px 8px;
+            border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;
+          ">永久刪除</button>
+        </div>
+      </div>
+    `;
+    
+    container.appendChild(historyItem);
+  });
+}
+
+function restoreNews(id, date) {
+  if (!isAdminMode) {
+    showNotification('❌ 請先登入管理後台！', 'error');
+    return;
+  }
+  
+  showConfirmDialog('⚠️ 確定要復原這則新聞到當前新聞列表嗎？', async () => {
+    const historyNews = historyData.find(h => h.id == id && h.date === date);
+    
+    if (historyNews) {
+      const exists = newsData.some(n => n.id == historyNews.id && n.date === historyNews.date);
+      if (exists) {
+        showNotification('⚠️ 該新聞已存在於當前新聞列表中！', 'warning');
+        return;
+      }
+      
+      const originalNewsData = [...newsData]; 
+      const originalHistoryData = [...historyData];
+
+      const { archivedDate, ...restoredNews } = historyNews;
+      newsData.push(restoredNews);
+      
+      historyData = historyData.filter(h => !(h.id == id && h.date === date));
+      filteredHistory = filteredHistory.filter(h => !(h.id == id && h.date === date));
+      
+      const success = await saveData('restoreNews');
+      
+      if (success) {
+        renderNews(); 
+        updateAdminNewsList(); 
+        closeModal('historyModal');
+        setTimeout(() => {
+          showNotification('✅ 新聞已復原到主頁面！', 'success');
+        }, 100);
+      } else {
+         newsData = originalNewsData;
+        historyData = originalHistoryData;
+        filteredHistory = originalHistoryData.filter(h => !(h.id == id && h.date === date)); 
+        displayHistoryResults();
+        showNotification('❌ 復原失敗：資料未儲存到後端！', 'error');
+      }
+    } else {
+      showNotification('❌ 復原失敗：找不到指定的新聞！', 'error');
+    }
+  });
+}
+
+function permanentDeleteNews(id, date) {
+  if (!isAdminMode) {
+    showNotification('❌ 請先登入管理後台！', 'error');
+    return;
+  }
+  
+  showConfirmDialog('⚠️ 確定要永久刪除這則新聞嗎？此操作無法復原！', async () => {
+    const originalHistoryData = [...historyData]; 
+    
+    historyData = historyData.filter(h => !(h.id == id && h.date === date));
+    filteredHistory = filteredHistory.filter(h => !(h.id == id && h.date === date));
+    
+    const success = await saveData('deleteHistory');
+
+    if (success) {
+      displayHistoryResults(); 
+    } else {
+      historyData = originalHistoryData;
+      filteredHistory = originalHistoryData.filter(h => !(h.id == id && h.date === date)); 
+      displayHistoryResults();
+      showNotification('❌ 刪除失敗：資料未儲存到後端！', 'error');
+    }
+  });
+}
+
+// 通用功能
+function closeModal(modalId) {
+  document.getElementById(modalId).classList.remove('show');
+}
+
+// 點擊模態框外部關閉
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('modal')) {
+    e.target.classList.remove('show');
+  }
+});
+
+// 鍵盤快捷鍵
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const modals = document.querySelectorAll('.modal.show');
+    modals.forEach(modal => modal.classList.remove('show'));
+  }
+});
+
+// 自定義通知系統 (邏輯不變)
+function showNotification(message, type = 'info') {
+  const existingNotification = document.querySelector('.notification');
+  if (existingNotification) {
+    existingNotification.remove();
+  }
+  
+  const notification = document.createElement('div');
+  notification.className = 'notification';
+  notification.textContent = message;
+  
+  const colors = {
+    success: '#059669',
+    error: '#DC2626',
+    warning: '#D97706',
+    info: '#2563EB'
+  };
+  
+  notification.style.cssText = `
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: ${colors[type]};
+    color: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10000;
+    max-width: 400px;
+    white-space: pre-line;
+    animation: slideIn 0.3s ease-out;
+  `;
+  
+  if (!document.querySelector('#notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease-in';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 300);
+  }, 3000);
+}
+
+// 自定義確認對話框 (邏輯不變)
+function showConfirmDialog(message, onConfirm) {
+  const existingDialog = document.querySelector('.confirm-dialog');
+  if (existingDialog) {
+    existingDialog.remove();
+  }
+  
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-dialog';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+  `;
+  
+  const dialog = document.createElement('div');
+  dialog.style.cssText = `
+    background: white;
+    padding: 32px;
+    border-radius: 16px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  `;
+  
+  dialog.innerHTML = `
+    <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.5; color: var(--ink);">${message}</p>
+    <div>
+      <button class="btn danger" onclick="confirmAction()">確定</button>
+      <button class="btn secondary" onclick="cancelAction()">取消</button>
+    </div>
+  `;
+  
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  
+  window.confirmAction = function() {
+    overlay.remove();
+    onConfirm();
+    delete window.confirmAction;
+    delete window.cancelAction;
+  };
+  
+  window.cancelAction = function() {
+    overlay.remove();
+    delete window.confirmAction;
+    delete window.cancelAction;
+  };
+  
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) {
+      window.cancelAction();
+    }
+  });
+}
+</script>
+</body>
+</html>
