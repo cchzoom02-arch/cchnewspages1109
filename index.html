@@ -158,6 +158,36 @@
     width:auto; margin:0;
   }
 
+  /* ===== 新增：載入中遮罩 ===== */
+  #loadingOverlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.7);
+    z-index: 9998;
+    align-items: center;
+    justify-content: center;
+  }
+  #loadingSpinner {
+    border: 6px solid var(--line);
+    border-top: 6px solid var(--blue);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+  }
+  #loadingOverlay.show {
+    display: flex;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  /* ============================= */
+
   @media (max-width:900px){
     .card{grid-template-columns:1fr; }
     .date{border-right:0; border-bottom:2px solid var(--line); padding-bottom:12px; margin-bottom:8px}
@@ -173,7 +203,12 @@
   <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
   <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
  </head>
- <body><button class="admin-btn" onclick="showLoginModal()">管理後台</button>
+ <body>
+  
+  <div id="loadingOverlay">
+    <div id="loadingSpinner"></div>
+  </div>
+  <button class="admin-btn" onclick="showLoginModal()">管理後台</button>
   <div class="wrap">
    <h1>新聞發布業務進度</h1>
    <div style="text-align:center; margin:20px 0"><button class="add-btn" onclick="addNews()">+ 新增新聞</button> <button class="add-btn" onclick="showHistoryModal()" style="background:var(--muted); margin-left:12px">📚 歷史紀錄</button>
@@ -258,177 +293,62 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
-// =======================================================
-// 【Apps Script API 網址】
-// =======================================================
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyo3kVFfPtXFHFktSLaZ6TDkKqGHsc2X3CG07TmWcdea078k0f7RPbhb0zGxpZBZD06aA/exec'; 
+// =================================================================
+// ===== 修改：後端 API 網址 =====
+// ！！！請在此貼上您在步驟二複製的 Google Apps Script 網頁應用程式網址！！！
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMhVt5lirT9hc9br0HpdXklVRm8JBbm6DKVfJbDVqRihdGA_8A4kh42kBpC5zIByRv/exec";
+// =================================================================
 
-// 初始資料狀態 (將取代原始的硬編碼資料)
-let newsData = []; 
-let staffData = {
-  editor: [],
-  video: [],
-  graphic: []
-};
-let historyData = [];
+
+// 初始資料 (現在變為空陣列，將從 API 載入)
+let newsData = [];
+let staffData = { editor: [], video: [], graphic: [] };
+let historyData = []; // 歷史紀錄資料
 
 let isAdminMode = false;
 let editingId = null;
 let autoDeleteTimer = null;
 let filteredHistory = []; // 搜尋結果
 
-// =======================================================
-// 核心 API 函數
-// =======================================================
 
-/**
- * 通用 API 請求函數，用於與 Apps Script 進行通訊
- */
-async function fetchAPI(action, data = null, method = 'GET') {
-  const url = `${APPS_SCRIPT_URL}?action=${action}`;
-  const options = {
-    method: method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
-
-  if (method === 'POST' && data) {
-    options.body = JSON.stringify({ action, data });
-  }
-
-  try {
-    const response = await fetch(url, options);
-    
-    if (!response.ok) {
-      throw new Error(`API 請求失敗，狀態碼: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    
-    if (result.error) {
-      throw new Error(result.error);
-    }
-    
-    return result;
-  } catch (error) {
-    console.error(`執行 ${action} 失敗:`, error);
-    showNotification(`❌ API 執行錯誤 (${action})：${error.message}`, 'error');
-    return { error: error.message }; 
-  }
-}
-
-// =======================================================
-// 資料載入與同步函數 (取代 localStorage 儲存)
-// =======================================================
-
-/**
- * 載入所有初始資料 (News, Staff, History)
- */
-async function loadData() {
-  try {
-    const result = await fetchAPI('loadInitialData', null, 'GET');
-
-    if (result && !result.error) {
-      newsData = result.newsData || [];
-      staffData = result.staffData || { editor: [], video: [], graphic: [] };
-      historyData = result.historyData || [];
-      console.log('✅ 資料從 Google Sheet 載入成功！');
-      // 成功載入後，清除 localStorage 中的舊資料 (防止舊資料覆蓋新資料)
-      localStorage.clear(); 
-    } else {
-       // 如果 API 載入失敗，仍然嘗試使用 localStorage 中的舊資料作為備用
-       const savedNews = localStorage.getItem('newsData');
-       if (savedNews) {
-           newsData = JSON.parse(savedNews);
-           staffData = JSON.parse(localStorage.getItem('staffData'));
-           historyData = JSON.parse(localStorage.getItem('historyData'));
-           showNotification('⚠️ Google Sheet 資料載入失敗，已使用瀏覽器暫存資料！請檢查 Apps Script 部署。', 'warning');
-       } else {
-           showNotification('❌ 無法從 Google Sheet 載入資料。', 'error');
-       }
-    }
-  } catch (error) {
-     console.error('loadData 執行錯誤:', error);
-     showNotification('❌ 初始資料載入失敗，請檢查 Apps Script URL 及部署設定。', 'error');
-  }
-}
-
-/**
- * 同步新聞列表到 Apps Script 的 News Sheet
- */
-async function syncNewsData(showMessage = true) {
-  const result = await fetchAPI('saveNews', { newsData: newsData }, 'POST');
-  if (result.error) {
-    showNotification('❌ 新聞列表同步到 Google Sheet 失敗！', 'error');
-    return false;
-  }
-  if (showMessage) {
-      showNotification('✅ 新聞列表已儲存！', 'success');
-  }
-  return true;
-}
-
-/**
- * 同步人員資料到 Apps Script 的 Staff Sheet
- */
-async function syncStaffData() {
-  const { editor, video, graphic } = staffData;
-  const result = await fetchAPI('saveStaff', { editor, video, graphic }, 'POST');
-  if (result.error) {
-    showNotification('❌ 人員資料同步到 Google Sheet 失敗！', 'error');
-    return false;
+// ===== 新增：控制載入中遮罩 =====
+function showLoading(show) {
+  const overlay = document.getElementById('loadingOverlay');
+  if (show) {
+    overlay.classList.add('show');
   } else {
-    showNotification('✅ 人員資料已儲存！', 'success');
-    return true;
+    overlay.classList.remove('show');
   }
 }
-
-/**
- * 重新載入歷史紀錄資料
- */
-async function loadHistoryDataApi() {
-  const result = await fetchAPI('loadHistoryData', null, 'GET');
-  if (result && !result.error) {
-    historyData = result.historyData || [];
-    console.log('✅ 歷史紀錄已從 Apps Script 重新載入！');
-  }
-}
+// ================================
 
 
-// =======================================================
-// 核心邏輯函數 (修改為 ASYNC/AWAIT 並呼叫 API)
-// =======================================================
-
-// 自動刪除過期新聞函數 (已修改為 ASYNC)
-async function autoDeleteExpiredNews() { 
+// 自動刪除過期新聞函數
+async function autoDeleteExpiredNews() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
   const originalLength = newsData.length;
-  let itemsArchived = 0;
   
-  // 找出所有過期新聞
+  // 將要刪除的新聞加入歷史紀錄
   const expiredNews = newsData.filter(news => {
     const newsDate = new Date(news.date);
     newsDate.setHours(0, 0, 0, 0);
     return newsDate < today;
   });
   
-  // 逐一歸檔過期新聞到 History Sheet
-  for (const news of expiredNews) {
-      const archivedItem = {
-          ...news,
-          archivedDate: new Date().toISOString().split('T')[0] 
-      };
-      
-      const archiveResult = await fetchAPI('archiveNews', { newsItem: archivedItem }, 'POST');
-      if (!archiveResult.error) {
-          itemsArchived++;
-      }
-  }
-
-  // 保留今天及以後的新聞 (從本地列表移除已成功歸檔的項目)
+  // 加入歷史紀錄（避免重複）
+  expiredNews.forEach(news => {
+    const exists = historyData.some(h => h.id == news.id && h.date === news.date);
+    if (!exists) {
+      historyData.push({
+        ...news,
+        archivedDate: new Date().toISOString().split('T')[0] // 記錄歸檔日期
+      });
+    }
+  });
+  
+  // 保留今天及以後的新聞
   newsData = newsData.filter(news => {
     const newsDate = new Date(news.date);
     newsDate.setHours(0, 0, 0, 0);
@@ -436,15 +356,14 @@ async function autoDeleteExpiredNews() {
   });
   
   // 如果有新聞被自動刪除，儲存資料並更新顯示
-  if (itemsArchived > 0) {
-    await syncNewsData(false); // 同步剩餘的新聞列表 (不顯示成功訊息)
-    await loadHistoryDataApi(); // 重新載入最新的歷史紀錄
-    console.log(`自動刪除了 ${itemsArchived} 則過期新聞，並已成功歸檔。`);
+  if (newsData.length < originalLength) {
+    await saveData(); // ===== 修改：await
+    console.log(`自動刪除了 ${originalLength - newsData.length} 則過期新聞，已加入歷史紀錄`);
   }
 }
 
-// 設定自動刪除定時器 (已修改為 ASYNC)
-function scheduleAutoDelete() {
+// 設定自動刪除定時器
+async function scheduleAutoDelete() { // ===== 修改：async
   // 清除現有定時器
   if (autoDeleteTimer) {
     clearTimeout(autoDeleteTimer);
@@ -458,14 +377,14 @@ function scheduleAutoDelete() {
   const timeUntilMidnight = tomorrow.getTime() - now.getTime();
   
   // 設定定時器在隔日00:00執行
-  autoDeleteTimer = setTimeout(async () => { 
-    await autoDeleteExpiredNews(); 
+  autoDeleteTimer = setTimeout(async () => { // ===== 修改：async
+    await autoDeleteExpiredNews(); // ===== 修改：await
     renderNews(); // 重新渲染頁面
     updateAdminNewsList(); // 更新管理後台列表
     
     // 設定下一次自動刪除（每24小時執行一次）
-    setInterval(async () => { 
-      await autoDeleteExpiredNews(); 
+    setInterval(async () => { // ===== 修改：async
+      await autoDeleteExpiredNews(); // ===== 修改：await
       renderNews();
       updateAdminNewsList();
     }, 24 * 60 * 60 * 1000); // 24小時
@@ -475,20 +394,20 @@ function scheduleAutoDelete() {
   console.log(`已設定自動刪除定時器，將於 ${tomorrow.toLocaleString()} 執行`);
 }
 
-// 初始化 (已修改為 ASYNC)
-document.addEventListener('DOMContentLoaded', async function() {
-  await loadData();
-  renderNews();
+// 初始化
+document.addEventListener('DOMContentLoaded', async function() { // ===== 修改：async
+  await loadData(); // ===== 修改：await
+  // renderNews() 已移至 loadData() 內部
 });
 
-// 渲染新聞列表 (邏輯不變)
+// 渲染新聞列表
 function renderNews() {
   const container = document.getElementById('newsContainer');
   container.innerHTML = '';
   
   // 自動刪除過期新聞（當日之前的新聞）
-  // 注意：這裡的呼叫是為了在載入時也檢查一次，並設定定時器
-  autoDeleteExpiredNews(); 
+  // 注意：autoDeleteExpiredNews 包含 saveData，是 async
+  // 為了簡化，我們在 scheduleAutoDelete 中呼叫它
   
   // 設定定時器，在隔日00:00自動刪除過期新聞
   scheduleAutoDelete();
@@ -525,9 +444,9 @@ function renderNews() {
     // 檢查是否為今天的新聞
     const isToday = newsDate.toDateString() === today.toDateString();
     
-    const editor = staffData.editor.find(s => s.id === news.editor);
-    const video = staffData.video.find(s => s.id === news.video);
-    const graphic = staffData.graphic.find(s => s.id === news.graphic);
+    const editor = staffData.editor.find(s => s.id == news.editor);
+    const video = staffData.video.find(s => s.id == news.video);
+    const graphic = staffData.graphic.find(s => s.id == news.graphic);
     
     const card = document.createElement('section');
     // 今天的新聞自動變成紅色重點新聞，手動設定的重點新聞為紫色
@@ -563,7 +482,7 @@ function renderNews() {
   });
 }
 
-// 登入功能 (邏輯不變)
+// 登入功能
 function showLoginModal() {
   if (isAdminMode) {
     showStaffModal();
@@ -584,7 +503,6 @@ function login() {
     
     // 創建自定義通知
     showNotification('✅ 登入成功！現在可以編輯新聞內容了。', 'success');
-    renderNews(); // 重新渲染以顯示編輯按鈕
   } else {
     showNotification('❌ 密碼錯誤！請重新輸入。', 'error');
     document.getElementById('adminPassword').value = '';
@@ -596,7 +514,7 @@ function login() {
 function editNews(id) {
   if (!isAdminMode) return;
   
-  const news = newsData.find(n => n.id === id);
+  const news = newsData.find(n => n.id == id);
   if (!news) return;
   
   editingId = id;
@@ -630,8 +548,7 @@ function addNews() {
   document.getElementById('editModal').classList.add('show');
 }
 
-// 儲存新聞 (已修改為 ASYNC 並呼叫 API)
-async function saveNews() {
+async function saveNews() { // ===== 修改：async
   const date = document.getElementById('editDate').value;
   const title = document.getElementById('editNewsTitle').value.trim();
   const editor = document.getElementById('editEditor').value;
@@ -646,7 +563,7 @@ async function saveNews() {
   
   if (editingId) {
     // 編輯現有新聞
-    const index = newsData.findIndex(n => n.id === editingId);
+    const index = newsData.findIndex(n => n.id == editingId);
     newsData[index] = {
       id: editingId,
       date, title, editor, video, graphic, accent
@@ -654,8 +571,7 @@ async function saveNews() {
     showNotification('✅ 新聞更新成功！', 'success');
   } else {
     // 新增新聞
-    // 確保 ID 是唯一且遞增的 (從現有最大的 ID 往上加)
-    const newId = newsData.length > 0 ? Math.max(...newsData.map(n => n.id)) + 1 : 1;
+    const newId = newsData.length > 0 ? Math.max(...newsData.map(n => Number(n.id))) + 1 : 1;
     newsData.push({
       id: newId,
       date, title, editor, video, graphic, accent
@@ -663,50 +579,36 @@ async function saveNews() {
     showNotification('✅ 新聞新增成功！', 'success');
   }
   
-  // 呼叫 API 儲存資料 (關鍵修改)
-  await syncNewsData(false); // 不顯示成功訊息，因為上面已經顯示
-  
+  await saveData(); // ===== 修改：await
   renderNews();
   closeModal('editModal');
 }
 
-// 刪除/完成新聞 (已修改為 ASYNC 並呼叫 API)
-function deleteNews() {
+function deleteNews() { // ===== 修改：此函數改為異步
   if (!editingId) {
     showNotification('❌ 無法刪除：找不到要刪除的新聞！', 'error');
     return;
   }
   
   // 創建自定義確認對話框
-  showConfirmDialog('⚠️ 確定要完成這則新聞嗎？完成後會移至歷史紀錄。', async () => {
-    const newsToDelete = newsData.find(n => n.id === editingId);
+  showConfirmDialog('⚠️ 確定要完成這則新聞嗎？完成後會移至歷史紀錄。', async () => { // ===== 修改：async
+    const newsToDelete = newsData.find(n => n.id == editingId);
     if (newsToDelete) {
-      
-      // 1. 準備歸檔資料
-      const archivedItem = {
+      // 加入歷史紀錄（避免重複）
+      const exists = historyData.some(h => h.id == newsToDelete.id && h.date === newsToDelete.date);
+      if (!exists) {
+        historyData.push({
           ...newsToDelete,
           archivedDate: new Date().toISOString().split('T')[0] // 記錄歸檔日期
-      };
-      
-      // 2. 呼叫 API 將新聞歸檔到 History Sheet
-      const archiveResult = await fetchAPI('archiveNews', { newsItem: archivedItem }, 'POST');
-      
-      if (archiveResult.error) {
-          showNotification('❌ 歸檔失敗，請重新嘗試！', 'error');
-          return; // 歸檔失敗則停止操作
+        });
       }
       
-      // 3. 從當前新聞中移除 (本地)
-      newsData = newsData.filter(n => n.id !== editingId);
+      // 從當前新聞中移除
+      newsData = newsData.filter(n => n.id != editingId);
       
-      // 4. 儲存剩餘的 NewsData (覆蓋 News Sheet)
-      await syncNewsData(false);
-      
-      // 5. 重新載入最新的歷史紀錄
-      await loadHistoryDataApi();
-      
+      await saveData(); // ===== 修改：await
       renderNews();
-      updateAdminNewsList(); 
+      updateAdminNewsList(); // 更新管理後台列表
       closeModal('editModal');
       showNotification('✅ 新聞已完成並移至歷史紀錄！', 'success');
     } else {
@@ -715,14 +617,14 @@ function deleteNews() {
   });
 }
 
-// 人員管理功能 (邏輯不變)
+// 人員管理功能
 function showStaffModal() {
   updateStaffLists();
   updateAdminNewsList();
   document.getElementById('staffModal').classList.add('show');
 }
 
-// 更新管理後台的新聞列表 (邏輯不變)
+// 更新管理後台的新聞列表
 function updateAdminNewsList() {
   const container = document.getElementById('adminNewsList');
   container.innerHTML = '';
@@ -741,9 +643,9 @@ function updateAdminNewsList() {
     today.setHours(0, 0, 0, 0);
     const isToday = newsDate.toDateString() === today.toDateString();
     
-    const editor = staffData.editor.find(s => s.id === news.editor);
-    const video = staffData.video.find(s => s.id === news.video);
-    const graphic = staffData.graphic.find(s => s.id === news.graphic);
+    const editor = staffData.editor.find(s => s.id == news.editor);
+    const video = staffData.video.find(s => s.id == news.video);
+    const graphic = staffData.graphic.find(s => s.id == news.graphic);
     
     const newsItem = document.createElement('div');
     
@@ -805,12 +707,15 @@ function updateStaffSelects() {
     const currentValue = select.value;
     select.innerHTML = `<option value="">請選擇${roles[index] === 'editor' ? '編輯' : roles[index] === 'video' ? '影片' : '平面'}人員</option>`;
     
-    staffData[roles[index]].forEach(staff => {
-      const option = document.createElement('option');
-      option.value = staff.id;
-      option.textContent = `${staff.id}（${staff.name}）`;
-      select.appendChild(option);
-    });
+    // 檢查 staffData[roles[index]] 是否存在
+    if (staffData[roles[index]]) {
+      staffData[roles[index]].forEach(staff => {
+        const option = document.createElement('option');
+        option.value = staff.id;
+        option.textContent = `${staff.id}（${staff.name}）`;
+        select.appendChild(option);
+      });
+    }
     
     select.value = currentValue;
   });
@@ -824,22 +729,27 @@ function updateStaffLists() {
     const count = document.getElementById(`${role}Count`);
     
     container.innerHTML = '';
-    count.textContent = staffData[role].length;
     
-    staffData[role].forEach(staff => {
-      const item = document.createElement('div');
-      item.className = 'staff-item';
-      item.innerHTML = `
-        <span><strong>${staff.id}</strong>（${staff.name}）</span>
-        <button class="remove-staff" onclick="removeStaff('${role}', '${staff.id}')">移除</button>
-      `;
-      container.appendChild(item);
-    });
+    // 檢查 staffData[role] 是否存在
+    if (staffData[role]) {
+      count.textContent = staffData[role].length;
+      
+      staffData[role].forEach(staff => {
+        const item = document.createElement('div');
+        item.className = 'staff-item';
+        item.innerHTML = `
+          <span><strong>${staff.id}</strong>（${staff.name}）</span>
+          <button class="remove-staff" onclick="removeStaff('${role}', '${staff.id}')">移除</button>
+        `;
+        container.appendChild(item);
+      });
+    } else {
+      count.textContent = 0;
+    }
   });
 }
 
-// 新增人員 (已修改為 ASYNC 並呼叫 API)
-async function addStaff() {
+async function addStaff() { // ===== 修改：async
   const id = document.getElementById('staffId').value.trim();
   const name = document.getElementById('staffName').value.trim();
   const role = document.getElementById('staffRole').value;
@@ -851,7 +761,7 @@ async function addStaff() {
   
   // 檢查是否已存在
   const exists = Object.values(staffData).some(roleStaff => 
-    roleStaff.some(staff => staff.id === id)
+    roleStaff.some(staff => staff.id == id)
   );
   
   if (exists) {
@@ -866,24 +776,21 @@ async function addStaff() {
   
   updateStaffLists();
   updateStaffSelects();
-  
-  // 呼叫 API 儲存人員資料 (關鍵修改)
-  await syncStaffData();
+  await saveData(); // ===== 修改：await
+  showNotification('✅ 人員新增成功！', 'success');
 }
 
-// 移除人員 (已修改為 ASYNC 並呼叫 API)
-function removeStaff(role, id) {
-  showConfirmDialog('⚠️ 確定要移除這位人員嗎？', async () => {
-    staffData[role] = staffData[role].filter(staff => staff.id !== id);
+function removeStaff(role, id) { // ===== 修改：此函數改為異步
+  showConfirmDialog('⚠️ 確定要移除這位人員嗎？', async () => { // ===== 修改：async
+    staffData[role] = staffData[role].filter(staff => staff.id != id);
     updateStaffLists();
     updateStaffSelects();
-    
-    // 呼叫 API 儲存人員資料 (關鍵修改)
-    await syncStaffData();
+    await saveData(); // ===== 修改：await
+    showNotification('✅ 人員已移除！', 'success');
   });
 }
 
-// Excel下載功能 (邏輯不變)
+// Excel下載功能
 function downloadHistoryExcel() {
   if (filteredHistory.length === 0) {
     showNotification('⚠️ 沒有資料可以下載！請先搜尋或確認有歷史紀錄。', 'warning');
@@ -916,9 +823,9 @@ function downloadHistoryExcel() {
   // 轉換資料格式
   sortedData.forEach((news, index) => {
     const newsDate = new Date(news.date);
-    const editor = staffData.editor.find(s => s.id === news.editor);
-    const video = staffData.video.find(s => s.id === news.video);
-    const graphic = staffData.graphic.find(s => s.id === news.graphic);
+    const editor = staffData.editor.find(s => s.id == news.editor);
+    const video = staffData.video.find(s => s.id == news.video);
+    const graphic = staffData.graphic.find(s => s.id == news.graphic);
     
     excelData.push({
       '序號': index + 1,
@@ -1033,12 +940,12 @@ function downloadHistoryExcel() {
     const graphicStats = {};
     
     sortedData.forEach(news => {
-      const editor = staffData.editor.find(s => s.id === news.editor);
-      const video = staffData.video.find(s => s.id === news.video);
-      const graphic = staffData.graphic.find(s => s.id === news.graphic);
+      const editor = staffData.editor.find(s => s.id == news.editor);
+      const video = staffData.video.find(s => s.id == news.video);
+      const graphic = staffData.graphic.find(s => s.id == news.graphic);
       
       const editorName = editor ? editor.name : '已離職';
-      const videoName = video ? video.name : '已離離職';
+      const videoName = video ? video.name : '已離職';
       const graphicName = graphic ? graphic.name : '已離職';
       
       editorStats[editorName] = (editorStats[editorName] || 0) + 1;
@@ -1116,13 +1023,13 @@ function downloadHistoryExcel() {
   }
 }
 
-// Excel匯入功能 (已修改為 ASYNC 並呼叫 API)
-function importExcel(event) {
+// Excel匯入功能
+async function importExcel(event) { // ===== 修改：async
   const file = event.target.files[0];
   if (!file) return;
   
   const reader = new FileReader();
-  reader.onload = async function(e) { 
+  reader.onload = async function(e) { // ===== 修改：async
     try {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, {type: 'array'});
@@ -1153,7 +1060,7 @@ function importExcel(event) {
         
         // 檢查是否已存在
         const exists = Object.values(staffData).some(roleStaff => 
-          roleStaff.some(staff => staff.id === id)
+          roleStaff.some(staff => staff.id == id)
         );
         
         if (!exists) {
@@ -1170,16 +1077,10 @@ function importExcel(event) {
         }
       }
       
-      
+      showNotification(message, 'success');
       updateStaffLists();
       updateStaffSelects();
-      
-      // 呼叫 API 儲存人員資料 (關鍵修改)
-      await syncStaffData();
-      
-      // 顯示通知
-      showNotification(message, 'success');
-      
+      await saveData(); // ===== 修改：await
     } catch (error) {
       showNotification('❌ 檔案格式錯誤！請確認Excel檔案格式正確。\n\n建議格式：\n- 員工編號 | 姓名 | 職位\n- 職位請填寫：編輯、影片、平面', 'error');
     }
@@ -1190,9 +1091,8 @@ function importExcel(event) {
   event.target.value = '';
 }
 
-// 歷史紀錄功能 (已修改為 ASYNC)
-async function showHistoryModal() {
-  await loadHistoryDataApi(); // 確保歷史紀錄是最新的
+// 歷史紀錄功能
+function showHistoryModal() {
   updateYearOptions();
   clearSearch();
   document.getElementById('historyModal').classList.add('show');
@@ -1210,9 +1110,8 @@ function updateYearOptions() {
   });
   
   // 從2025年開始，每年自動增加到當前年份+1
-  const startYear = 2025;
-  // 使用 Math.max 確保至少包含當前年份
-  const endYear = Math.max(currentYear, startYear) + 1; 
+  const startYear = 2024; // 修改為 2024
+  const endYear = Math.max(currentYear + 1, startYear);
   for (let i = startYear; i <= endYear; i++) {
     years.add(i);
   }
@@ -1226,7 +1125,6 @@ function updateYearOptions() {
   });
 }
 
-// 搜尋功能 (邏輯不變)
 function searchHistory() {
   const year = document.getElementById('searchYear').value;
   const month = document.getElementById('searchMonth').value;
@@ -1291,9 +1189,9 @@ function displayHistoryResults() {
   
   sortedHistory.forEach(news => {
     const newsDate = new Date(news.date);
-    const editor = staffData.editor.find(s => s.id === news.editor);
-    const video = staffData.video.find(s => s.id === news.video);
-    const graphic = staffData.graphic.find(s => s.id === news.graphic);
+    const editor = staffData.editor.find(s => s.id == news.editor);
+    const video = staffData.video.find(s => s.id == news.video);
+    const graphic = staffData.graphic.find(s => s.id == news.graphic);
     
     const historyItem = document.createElement('div');
     
@@ -1341,14 +1239,13 @@ function displayHistoryResults() {
   });
 }
 
-// 復原新聞 (已修改為 ASYNC 並呼叫 API)
-function restoreNews(id, date) {
+function restoreNews(id, date) { // ===== 修改：此函數改為異步
   if (!isAdminMode) {
     showNotification('❌ 請先登入管理後台！', 'error');
     return;
   }
   
-  showConfirmDialog('⚠️ 確定要復原這則新聞到當前新聞列表嗎？', async () => {
+  showConfirmDialog('⚠️ 確定要復原這則新聞到當前新聞列表嗎？', async () => { // ===== 修改：async
     const historyNews = historyData.find(h => h.id == id && h.date === date);
     if (historyNews) {
       // 檢查是否已存在於當前新聞中
@@ -1362,13 +1259,13 @@ function restoreNews(id, date) {
       const { archivedDate, ...restoredNews } = historyNews;
       newsData.push(restoredNews);
       
-      // 1. 更新 News Sheet
-      await syncNewsData(false);
-      
-      // 2. 從本地歷史紀錄中移除，並重新載入最新的歷史紀錄 (提示：後端 History Sheet 項目需手動清理)
+      // 從歷史紀錄中移除
       historyData = historyData.filter(h => !(h.id == id && h.date === date));
-      await loadHistoryDataApi(); 
       
+      // 同時更新過濾後的歷史紀錄
+      filteredHistory = filteredHistory.filter(h => !(h.id == id && h.date === date));
+      
+      await saveData(); // ===== 修改：await
       renderNews(); // 更新主頁面
       updateAdminNewsList(); // 更新管理後台列表
       
@@ -1385,33 +1282,124 @@ function restoreNews(id, date) {
   });
 }
 
-// 永久刪除 (不呼叫 API，僅為前端本地操作，並提示使用者)
-function permanentDeleteNews(id, date) {
+function permanentDeleteNews(id, date) { // ===== 修改：此函數改為異步
   if (!isAdminMode) {
     showNotification('❌ 請先登入管理後台！', 'error');
     return;
   }
   
-  showConfirmDialog('⚠️ 確定要永久刪除這則新聞嗎？此操作無法復原！(請注意：後端 Google Sheet 中的歷史紀錄需手動刪除)', () => {
+  showConfirmDialog('⚠️ 確定要永久刪除這則新聞嗎？此操作無法復原！', async () => { // ===== 修改：async
     const originalLength = historyData.length;
     
-    // 從本地歷史紀錄中完全移除
+    // 從歷史紀錄中完全移除
     historyData = historyData.filter(h => !(h.id == id && h.date === date));
     
     // 同時更新過濾後的歷史紀錄
     filteredHistory = filteredHistory.filter(h => !(h.id == id && h.date === date));
     
     if (historyData.length < originalLength) {
-      // 由於 Apps Script 後端沒有提供刪除歷史紀錄的 API，這裡只更新前端顯示
+      await saveData(); // ===== 修改：await
       displayHistoryResults(); // 重新顯示結果
-      showNotification('✅ 新聞已從本地列表移除！\n(⚠️ 後端 Google Sheet 需手動刪除)', 'success');
+      showNotification('✅ 新聞已永久刪除！', 'success');
     } else {
       showNotification('❌ 刪除失敗：找不到指定的新聞！', 'error');
     }
   });
 }
 
-// 移除舊的 localStorage 函數 (已被 API 載入/同步函數取代)
+// =================================================================
+// ===== 修改：資料儲存與載入 =====
+
+/**
+ * [修改] 儲存所有資料到 Google Apps Script
+ */
+async function saveData() {
+  console.log('儲存資料到 Google Sheet...');
+  showLoading(true);
+  try {
+    const payload = {
+      action: "saveAll",
+      newsData: newsData,
+      staffData: staffData,
+      historyData: historyData
+    };
+    
+    const response = await fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8', // 使用 text/plain 避免 CORS preflight
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (result.status !== 'success') {
+      console.error('儲存失敗:', result);
+      showNotification('❌ 儲存資料失敗！\n' + result.message, 'error');
+    } else {
+      console.log('儲存成功！');
+      // 儲存成功時不需要顯示通知，避免干擾
+    }
+    
+  } catch (error) {
+    console.error('saveData 發生錯誤:', error);
+    showNotification('❌ 儲存資料時發生網路錯誤！', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+/**
+ * [修改] 從 Google Apps Script 載入所有資料
+ */
+async function loadData() {
+  console.log('從 Google Sheet 載入資料...');
+  showLoading(true);
+  
+  // 檢查 URL 是否已設定
+  if (GAS_WEB_APP_URL === "PASTE_YOUR_APPS_SCRIPT_URL_HERE") {
+    showNotification('❌ 錯誤：您尚未設定 Google Apps Script 網址！\n請修改 index.html 中的 GAS_WEB_APP_URL 變數。', 'error');
+    container.innerHTML = '<h2 style="text-align:center; color:var(--accent)">設定錯誤，請檢查主控台 (F12)</h2>';
+    showLoading(false);
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${GAS_WEB_APP_URL}?action=loadAll`);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'error') {
+       throw new Error(`API Error: ${data.message}`);
+    }
+
+    // 將載入的資料存入全域變數
+    newsData = data.news || [];
+    staffData = data.staff || { editor: [], video: [], graphic: [] };
+    historyData = data.history || [];
+    
+    console.log('資料載入成功:', data);
+    
+    // 執行自動刪除過期新聞
+    await autoDeleteExpiredNews();
+    
+    // 載入資料並清理完畢後，才渲染畫面
+    renderNews(); 
+    
+  } catch (error) {
+    console.error('loadData 發生錯誤:', error);
+    showNotification(`❌ 載入資料失敗！\n${error.message}\n請檢查 GAS 網址是否正確，以及 Google Sheet 權限是否設定為「任何人」可存取。`, 'error');
+    document.getElementById('newsContainer').innerHTML = '<h2 style="text-align:center; color:var(--accent)">資料載入失敗，請F12檢查主控台。</h2>';
+  } finally {
+    showLoading(false);
+  }
+}
+// =================================================================
+
 
 // 通用功能
 function closeModal(modalId) {
@@ -1547,7 +1535,7 @@ function showConfirmDialog(message, onConfirm) {
   // 全域函數處理確認和取消
   window.confirmAction = function() {
     overlay.remove();
-    onConfirm();
+    onConfirm(); // onConfirm 現在可能是 async
     delete window.confirmAction;
     delete window.cancelAction;
   };
@@ -1568,6 +1556,7 @@ function showConfirmDialog(message, onConfirm) {
 </script>
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'993026a7b3b4f21c',t:'MTc2MTIxMTE0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
+
 
 
 
