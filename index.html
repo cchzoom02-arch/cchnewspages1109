@@ -6,9 +6,6 @@
   <title>新聞發布業務進度</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800&amp;display=swap" rel="stylesheet">
   <style>
-  body {
-    box-sizing: border-box;
-  }
   :root{
     --ink:#111111;
     --muted:#6B7280;
@@ -17,7 +14,9 @@
     --soft-red:#FFFAFA;
     --soft-red-line:#FFDDDD;
     --blue:#2563EB;
-    --green:#059669;
+    --green:#059669; 
+    --soft-green: #D1FAE5;
+    --soft-green-line: #10B981;
     --purple:#7C3AED;
     --soft-purple:#F8F5FF;
     --soft-purple-line:#E0D4FF;
@@ -28,14 +27,38 @@
     color:var(--ink); background:#fff; margin:0; line-height:1.5;
   }
   .wrap{max-width:1200px;margin:40px auto;padding:0 24px}
-  h1{font-weight:800;font-size:52px;letter-spacing:.5px;text-align:center;margin:0 0 28px}
   
+  /* 標題與切換區塊 */
+  .header-area {
+    display: flex; flex-direction: column; align-items: center; margin-bottom: 28px; position: relative;
+  }
+  h1{font-weight:800;font-size:52px;letter-spacing:.5px;text-align:center;margin:0 0 16px}
+  
+  .view-toggle {
+    display: flex; background: #f1f5f9; padding: 4px; border-radius: 8px;
+  }
+  .view-btn {
+    padding: 8px 24px; border: none; background: transparent; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: var(--muted); border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .view-btn.active {
+    background: white; color: var(--blue); box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
   /* 原始卡片樣式 */
   .card{
     display:grid; grid-template-columns:140px 1fr 240px; gap:24px;
     border:2px solid var(--line); border-radius:16px; padding:16px 20px; margin:0 0 20px;
     background:#fff; position:relative;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
   }
+  /* 跳轉時的高亮樣式 */
+  .card.highlight-focus {
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.4);
+    border-color: var(--blue);
+  }
+
   .card.accent{border-color:var(--soft-red-line); background:var(--soft-red)}
   .card.purple{border-color:var(--soft-purple-line); background:var(--soft-purple)}
   .date{
@@ -51,16 +74,103 @@
   .card.purple .date .label,
   .card.purple .date .day,
   .card.purple .date .weekday{color:var(--purple)}
-  .content{display:flex; align-items:center}
+  
+  .content{display:flex; flex-direction: column; justify-content: center;}
   .content h2{margin:0; font-size:40px; line-height:1.15; font-weight:800}
   .content h2.red{color:var(--accent)}
   .content h2.purple{color:var(--purple)}
+  
+  /* 備註樣式 */
+  .content .note{
+    font-size: 15px; color: #555; margin-top: 10px; font-weight: 400;
+    background-color: #f3f4f6; padding: 6px 12px; border-radius: 6px;
+    border-left: 3px solid #cbd5e1; line-height: 1.5; white-space: pre-wrap;
+  }
+
   .meta{
     padding-left:20px; border-left:2px solid var(--line);
     background:#F7F7F7; border-radius:12px; padding:12px 16px; display:flex; flex-direction:column; justify-content:center
   }
   .meta .row{margin:4px 0; font-size:16px}
   .meta .key{color:var(--muted); margin-right:6px}
+
+  /* 月曆模式樣式 */
+  #calendarContainer {
+    display: none; width: 100%;
+  }
+  .calendar-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+  }
+  .calendar-header h2 { margin: 0; font-size: 24px; }
+  .calendar-nav-btn {
+    background: white; border: 1px solid var(--line); padding: 8px 16px; border-radius: 6px; cursor: pointer;
+  }
+  .calendar-nav-btn:hover { background: #f9fafb; }
+
+  .calendar-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;
+  }
+  .calendar-day-header {
+    text-align: center; font-weight: 600; color: var(--muted); padding: 8px;
+  }
+  .calendar-cell {
+    background: white; border: 1px solid var(--line); border-radius: 8px; min-height: 120px;
+    padding: 8px; display: flex; flex-direction: column; gap: 4px;
+    position: relative;
+  }
+  .calendar-cell.other-month {
+    background: #f9fafb; opacity: 0.6;
+  }
+  
+  /* 月曆中的事件樣式 */
+  .calendar-event {
+    font-size: 13px; padding: 4px 8px; border-radius: 4px; cursor: pointer;
+    background: white; border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 2px;
+    transition: transform 0.1s;
+  }
+  .calendar-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  /* 文字顏色樣式 */
+  .calendar-event.text-green {
+    color: var(--green) !important;
+    font-weight: 700;
+    border-color: var(--soft-green-line);
+    background-color: var(--soft-green);
+  }
+  .calendar-event.text-red {
+    color: var(--accent) !important;
+    font-weight: 700;
+    border-color: var(--soft-red-line);
+    background-color: var(--soft-red);
+  }
+  .calendar-event.text-purple {
+    color: var(--purple) !important;
+    font-weight: 700;
+    border-color: var(--soft-purple-line);
+    background-color: var(--soft-purple);
+  }
+  .calendar-event.text-black {
+    color: var(--ink) !important;
+  }
+  
+  .day-number {
+    font-weight: 800; color: var(--muted); margin-bottom: 4px; font-size: 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  /* 未定日期區塊 */
+  .unscheduled-area {
+    margin-bottom: 24px; padding: 16px; background: #fdfdfd; 
+    border: 2px dashed var(--line); border-radius: 12px;
+  }
+  .unscheduled-title { font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+  .unscheduled-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
 
   /* 管理功能樣式 */
   .admin-btn{
@@ -110,6 +220,7 @@
     outline:none; border-color:var(--blue);
   }
   .form-group textarea{resize:vertical; min-height:100px}
+  .form-group textarea.short{min-height:80px; height: 80px;}
   
   .btn{
     background:var(--blue); color:white; border:none; padding:12px 24px;
@@ -158,35 +269,21 @@
     width:auto; margin:0;
   }
 
-  /* ===== 新增：載入中遮罩 ===== */
+  /* 載入中遮罩 */
   #loadingOverlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.7);
-    z-index: 9998;
-    align-items: center;
-    justify-content: center;
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.7); z-index: 9998;
+    align-items: center; justify-content: center;
   }
   #loadingSpinner {
-    border: 6px solid var(--line);
-    border-top: 6px solid var(--blue);
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
+    border: 6px solid var(--line); border-top: 6px solid var(--blue);
+    border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;
   }
-  #loadingOverlay.show {
-    display: flex;
-  }
+  #loadingOverlay.show { display: flex; }
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
-  /* ============================= */
 
   @media (max-width:900px){
     .card{grid-template-columns:1fr; }
@@ -196,6 +293,8 @@
     .date .day{font-size:42px}
     .modal-content{width:95%; padding:20px}
     .admin-btn{position:static; margin:20px auto; display:block; width:fit-content}
+    /* 月曆 RWD */
+    .calendar-cell { min-height: 80px; }
   }
 </style>
   <style>@view-transition { navigation: auto; }</style>
@@ -209,12 +308,43 @@
     <div id="loadingSpinner"></div>
   </div>
   <button class="admin-btn" onclick="showLoginModal()">管理後台</button>
+  
   <div class="wrap">
-   <h1>新聞發布業務進度</h1>
-   <div style="text-align:center; margin:20px 0"><button class="add-btn" onclick="addNews()">+ 新增新聞</button> <button class="add-btn" onclick="showHistoryModal()" style="background:var(--muted); margin-left:12px">📚 歷史紀錄</button>
+   
+   <div class="header-area">
+     <h1>新聞發布業務進度</h1>
+     <div class="view-toggle">
+       <button class="view-btn active" onclick="switchView('board')" id="btnBoard">看板模式</button>
+       <button class="view-btn" onclick="switchView('calendar')" id="btnCalendar">月曆模式</button>
+     </div>
    </div>
+
+   <div style="text-align:center; margin:20px 0">
+     <button class="add-btn" onclick="addNews()">+ 新增新聞</button> 
+     <button class="add-btn" onclick="showHistoryModal()" style="background:var(--muted); margin-left:12px">📚 歷史紀錄</button>
+   </div>
+   
    <div id="newsContainer"></div>
-  </div><div id="loginModal" class="modal">
+   
+   <div id="calendarContainer">
+     <div class="calendar-header">
+       <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀ 上個月</button>
+       <h2 id="currentMonthLabel">2024年 5月</h2>
+       <button class="calendar-nav-btn" onclick="changeMonth(1)">下個月 ▶</button>
+     </div>
+     
+     <div id="unscheduledArea" class="unscheduled-area" style="display:none;">
+        <div class="unscheduled-title">📅 日期未定新聞</div>
+        <div class="unscheduled-list" id="unscheduledList"></div>
+     </div>
+
+     <div class="calendar-grid" id="calendarGrid">
+       </div>
+   </div>
+
+  </div>
+
+  <div id="loginModal" class="modal">
    <div class="modal-content">
     <h3>🔐 管理員登入</h3>
     <div class="form-group"><label>請輸入管理密碼：</label> <input type="password" id="adminPassword" placeholder="請輸入密碼" onkeypress="if(event.key==='Enter') login()">
@@ -222,13 +352,18 @@
     <div style="text-align:center"><button class="btn" onclick="login()">登入</button> <button class="btn secondary" onclick="closeModal('loginModal')">取消</button>
     </div>
    </div>
-  </div><div id="editModal" class="modal">
+  </div>
+
+  <div id="editModal" class="modal">
    <div class="modal-content">
     <h3 id="editTitle">編輯新聞</h3>
     <div class="form-group"><label>📅 發布日期：</label> <input type="date" id="editDate" required>
     </div>
     <div class="form-group"><label>📰 新聞標題：</label> <textarea id="editNewsTitle" placeholder="請輸入新聞標題" required></textarea>
     </div>
+    <div class="form-group"><label>📝 備註事項：</label> <textarea id="editNewsNote" class="short" placeholder="請輸入備註說明（選填，字體較小顯示於標題下方）"></textarea>
+    </div>
+    
     <div class="form-group"><label>✏️ 編輯人員：</label> <select id="editEditor" required> <option value="">請選擇編輯人員</option> </select>
     </div>
     <div class="form-group"><label>🎬 影片人員：</label> <select id="editVideo" required> <option value="">請選擇影片人員</option> </select>
@@ -240,7 +375,9 @@
     <div style="text-align:center; margin-top:32px"><button class="btn" onclick="saveNews()">💾 儲存</button> <button class="btn danger" onclick="deleteNews()" id="deleteBtn">✅ 完成新聞</button> <button class="btn secondary" onclick="closeModal('editModal')">取消</button>
     </div>
    </div>
-  </div><div id="historyModal" class="modal">
+  </div>
+
+  <div id="historyModal" class="modal">
    <div class="modal-content" style="width:900px; max-width:95%; max-height:90vh">
     <h3>📚 新聞歷史紀錄</h3><div class="staff-section">
      <h4>🔍 搜尋條件</h4>
@@ -255,7 +392,9 @@
     <div style="text-align:center; margin-top:32px"><button class="btn" onclick="downloadHistoryExcel()" style="background:var(--green); margin-right:12px">📥 下載Excel</button> <button class="btn secondary" onclick="closeModal('historyModal')">關閉</button>
     </div>
    </div>
-  </div><div id="staffModal" class="modal">
+  </div>
+
+  <div id="staffModal" class="modal">
    <div class="modal-content" style="width:800px; max-width:95%">
     <h3>👥 管理後台</h3><div class="staff-section">
      <h4>📰 新聞管理</h4>
@@ -291,36 +430,235 @@
     </div>
    </div>
   </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
 // =================================================================
-// ===== 修改：後端 API 網址 =====
-// ！！！請在此貼上您在步驟二複製的 Google Apps Script 網頁應用程式網址！！！
-const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMhVt5lirT9hc9br0HpdXklVRm8JBbm6DKVfJbDVqRihdGA_8A4kh42kBpC5zIByRv/exec";
+// ===== 設定區 =====
+// ！！！請在此貼上您的 Google Apps Script 網址！！！
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyhvS2XPcRJmAyu1ig2dFROfs3yBq3mpwkSeUn5_wmnzuE-0NUbpZvmu0S91t0qcz_C/exec";
 // =================================================================
 
-
-// 初始資料 (現在變為空陣列，將從 API 載入)
+// 全域變數
 let newsData = [];
 let staffData = { editor: [], video: [], graphic: [] };
-let historyData = []; // 歷史紀錄資料
-
+let historyData = [];
 let isAdminMode = false;
 let editingId = null;
 let autoDeleteTimer = null;
-let filteredHistory = []; // 搜尋結果
+let filteredHistory = [];
 
+// 月曆變數
+let calendarDate = new Date(); // 當前檢視的月份
 
-// ===== 新增：控制載入中遮罩 =====
+// 控制載入中遮罩
 function showLoading(show) {
   const overlay = document.getElementById('loadingOverlay');
-  if (show) {
-    overlay.classList.add('show');
+  if (show) overlay.classList.add('show');
+  else overlay.classList.remove('show');
+}
+
+// 切換檢視模式
+function switchView(mode) {
+  const newsContainer = document.getElementById('newsContainer');
+  const calendarContainer = document.getElementById('calendarContainer');
+  const btnBoard = document.getElementById('btnBoard');
+  const btnCalendar = document.getElementById('btnCalendar');
+
+  if (mode === 'board') {
+    newsContainer.style.display = 'block';
+    calendarContainer.style.display = 'none';
+    btnBoard.classList.add('active');
+    btnCalendar.classList.remove('active');
+    renderNews(); // 重新渲染看板
   } else {
-    overlay.classList.remove('show');
+    newsContainer.style.display = 'none';
+    calendarContainer.style.display = 'block';
+    btnBoard.classList.remove('active');
+    btnCalendar.classList.add('active');
+    renderCalendar(); // 渲染月曆
   }
 }
-// ================================
+
+// 跳轉到看板模式並定位
+function jumpToBoard(newsId) {
+    switchView('board');
+    // 等待 DOM 渲染完成後執行
+    setTimeout(() => {
+        const element = document.getElementById(`news-${newsId}`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 添加暫時的高亮效果
+            element.classList.add('highlight-focus');
+            setTimeout(() => {
+                element.classList.remove('highlight-focus');
+            }, 2000);
+        }
+    }, 100);
+}
+
+// 月曆功能：渲染月曆
+function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  const monthLabel = document.getElementById('currentMonthLabel');
+  const unscheduledList = document.getElementById('unscheduledList');
+  const unscheduledArea = document.getElementById('unscheduledArea');
+
+  grid.innerHTML = '';
+  unscheduledList.innerHTML = '';
+  
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  
+  monthLabel.textContent = `${year}年 ${month + 1}月`;
+  
+  // 渲染星期標題
+  const days = ['日', '一', '二', '三', '四', '五', '六'];
+  days.forEach(day => {
+    const div = document.createElement('div');
+    div.className = 'calendar-day-header';
+    div.textContent = day;
+    grid.appendChild(div);
+  });
+
+  // 計算當月天數與起始星期
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  // 渲染上個月的剩餘天數 (補齊格子)
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    const dayNum = daysInPrevMonth - firstDayOfMonth + 1 + i;
+    const cell = createCalendarCell(dayNum, true);
+    grid.appendChild(cell);
+  }
+
+  // 取得真實的今天日期 (用於計算兩天內新增)
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  // 渲染當月天數
+  for (let i = 1; i <= daysInMonth; i++) {
+    const cell = createCalendarCell(i, false);
+    
+    // 構建這個格子的日期字串 (YYYY-MM-DD)
+    const currentDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+    const cellDate = new Date(year, month, i);
+    
+    // 找出當天的新聞 (確保資料同步)
+    const daysNews = newsData.filter(n => n.date === currentDateStr);
+    
+    daysNews.forEach(news => {
+      const event = document.createElement('div');
+      event.className = 'calendar-event';
+      
+      // ===== 文字顏色邏輯 =====
+      // 1. 判斷是否為「新增兩天內」(最優先，綠色字)
+      let isNewlyAdded = false;
+      if (news.createdDate) {
+        const createdDate = new Date(news.createdDate);
+        createdDate.setHours(0,0,0,0);
+        const diffTime = Math.abs(today - createdDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        if (diffDays <= 1) { 
+           isNewlyAdded = true;
+        }
+      }
+
+      // 2. 判斷是否為「今天」(紅色字)
+      const isToday = cellDate.toDateString() === today.toDateString();
+
+      // 3. 判斷是否為「重點」(紫色字)
+      const isAccent = news.accent;
+
+      // 套用 CSS Class (優先級：綠 > 紅 > 紫 > 黑)
+      if (isNewlyAdded) {
+        event.classList.add('text-green');
+      } else if (isToday) {
+        event.classList.add('text-red');
+      } else if (isAccent) {
+        event.classList.add('text-purple');
+      } else {
+        event.classList.add('text-black');
+      }
+      
+      // ===== 文字長度限制 (10個字) =====
+      let displayTitle = news.title;
+      if (displayTitle.length > 10) {
+          displayTitle = displayTitle.substring(0, 10) + '...';
+      }
+      event.textContent = displayTitle;
+
+      // 顯示備註在 title tooltip 中
+      const tooltip = `${news.title}\n${news.note ? `備註: ${news.note}\n` : ''}編輯: ${getStaffName('editor', news.editor)}`;
+      event.title = tooltip;
+      
+      // 點擊事件：跳轉到看板模式
+      event.onclick = (e) => {
+        e.stopPropagation();
+        jumpToBoard(news.id);
+      };
+      
+      cell.appendChild(event);
+    });
+
+    grid.appendChild(cell);
+  }
+
+  // 處理日期未定的新聞
+  const unscheduledNews = newsData.filter(n => !n.date);
+  if (unscheduledNews.length > 0) {
+    unscheduledArea.style.display = 'block';
+    unscheduledNews.forEach(news => {
+      const event = document.createElement('div');
+      event.className = 'calendar-event';
+      
+      // 未定日期的文字顏色邏輯 (綠 > 紫 > 黑) - 沒有「當日」的概念
+      let isNewlyAdded = false;
+      if (news.createdDate) {
+        const createdDate = new Date(news.createdDate);
+        createdDate.setHours(0,0,0,0);
+        const diffTime = Math.abs(today - createdDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        if (diffDays <= 1) isNewlyAdded = true;
+      }
+
+      if (isNewlyAdded) event.classList.add('text-green');
+      else if (news.accent) event.classList.add('text-purple');
+      else event.classList.add('text-black');
+
+      let displayTitle = news.title;
+      if (displayTitle.length > 10) displayTitle = displayTitle.substring(0, 10) + '...';
+      event.textContent = displayTitle;
+      
+      event.onclick = (e) => { 
+          e.stopPropagation();
+          jumpToBoard(news.id);
+      };
+      unscheduledList.appendChild(event);
+    });
+  } else {
+    unscheduledArea.style.display = 'none';
+  }
+}
+
+function createCalendarCell(dayNumber, isOtherMonth) {
+  const cell = document.createElement('div');
+  cell.className = `calendar-cell ${isOtherMonth ? 'other-month' : ''}`;
+  cell.innerHTML = `<div class="day-number">${dayNumber}</div>`;
+  return cell;
+}
+
+function changeMonth(offset) {
+  calendarDate.setMonth(calendarDate.getMonth() + offset);
+  renderCalendar();
+}
+
+// 輔助：取得員工姓名
+function getStaffName(role, id) {
+  const person = staffData[role]?.find(s => s.id == id);
+  return person ? person.name : '未指派';
+}
 
 
 // 自動刪除過期新聞函數
@@ -332,7 +670,6 @@ async function autoDeleteExpiredNews() {
   
   // 將要刪除的新聞加入歷史紀錄
   const expiredNews = newsData.filter(news => {
-    // ===== 修改：增加判斷 news.date 是否存在 =====
     if (!news.date) return false; 
     const newsDate = new Date(news.date);
     newsDate.setHours(0, 0, 0, 0);
@@ -345,130 +682,96 @@ async function autoDeleteExpiredNews() {
     if (!exists) {
       historyData.push({
         ...news,
-        archivedDate: new Date().toISOString().split('T')[0] // 記錄歸檔日期
+        archivedDate: new Date().toISOString().split('T')[0]
       });
     }
   });
   
   // 保留今天及以後的新聞 (或沒有日期的)
   newsData = newsData.filter(news => {
-    // ===== 修改：增加判斷 news.date 是否存在 =====
-    if (!news.date) return true; // 沒有日期的就保留
+    if (!news.date) return true;
     const newsDate = new Date(news.date);
     newsDate.setHours(0, 0, 0, 0);
     return newsDate >= today;
   });
   
-  // 如果有新聞被自動刪除，儲存資料並更新顯示
   if (newsData.length < originalLength) {
-    await saveData(); // ===== 修改：await
-    console.log(`自動刪除了 ${originalLength - newsData.length} 則過期新聞，已加入歷史紀錄`);
+    await saveData();
+    console.log(`自動刪除了 ${originalLength - newsData.length} 則過期新聞`);
   }
 }
 
-// 設定自動刪除定時器
-async function scheduleAutoDelete() { // ===== 修改：async
-  // 清除現有定時器
-  if (autoDeleteTimer) {
-    clearTimeout(autoDeleteTimer);
-  }
+async function scheduleAutoDelete() {
+  if (autoDeleteTimer) clearTimeout(autoDeleteTimer);
   
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0); // 設定為隔日00:00
+  tomorrow.setHours(0, 0, 0, 0);
   
   const timeUntilMidnight = tomorrow.getTime() - now.getTime();
   
-  // 設定定時器在隔日00:00執行
-  autoDeleteTimer = setTimeout(async () => { // ===== 修改：async
-    await autoDeleteExpiredNews(); // ===== 修改：await
-    renderNews(); // 重新渲染頁面
-    updateAdminNewsList(); // 更新管理後台列表
+  autoDeleteTimer = setTimeout(async () => {
+    await autoDeleteExpiredNews();
+    renderNews();
+    if(document.getElementById('calendarContainer').style.display !== 'none') renderCalendar();
+    updateAdminNewsList();
     
-    // 設定下一次自動刪除（每24小時執行一次）
-    setInterval(async () => { // ===== 修改：async
-      await autoDeleteExpiredNews(); // ===== 修改：await
+    setInterval(async () => {
+      await autoDeleteExpiredNews();
       renderNews();
+      if(document.getElementById('calendarContainer').style.display !== 'none') renderCalendar();
       updateAdminNewsList();
-    }, 24 * 60 * 60 * 1000); // 24小時
-    
+    }, 24 * 60 * 60 * 1000);
   }, timeUntilMidnight);
-  
-  console.log(`已設定自動刪除定時器，將於 ${tomorrow.toLocaleString()} 執行`);
 }
 
-// 初始化
-document.addEventListener('DOMContentLoaded', async function() { // ===== 修改：async
-  await loadData(); // ===== 修改：await
-  // renderNews() 已移至 loadData() 內部
+document.addEventListener('DOMContentLoaded', async function() {
+  await loadData();
 });
 
-// 渲染新聞列表
+// 渲染新聞列表 (看板模式)
 function renderNews() {
   const container = document.getElementById('newsContainer');
   container.innerHTML = '';
   
-  // 自動刪除過期新聞（當日之前的新聞）
-  // 注意：autoDeleteExpiredNews 包含 saveData，是 async
-  // 為了簡化，我們在 scheduleAutoDelete 中呼叫它
-  
-  // 設定定時器，在隔日00:00自動刪除過期新聞
   scheduleAutoDelete();
   
-  // 排序：今天的新聞在最上方，其餘按日期排序
   const today = new Date();
   const sortedNews = [...newsData].sort((a, b) => {
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
-    
-    // ===== 修改：處理沒有日期的情況 =====
     const aHasDate = a.date && !isNaN(dateA.getTime());
     const bHasDate = b.date && !isNaN(dateB.getTime());
 
-    // 優先：有日期的排前面
     if (aHasDate && !bHasDate) return -1;
     if (!aHasDate && bHasDate) return 1;
-    // 兩者都無日期，保持原狀
     if (!aHasDate && !bHasDate) return 0;
     
-    // 檢查是否為今天
-    const isToday = (date) => {
-      const checkDate = new Date(date);
-      return checkDate.toDateString() === today.toDateString();
-    };
-    
+    const isToday = (date) => new Date(date).toDateString() === today.toDateString();
     const aIsToday = isToday(dateA);
     const bIsToday = isToday(dateB);
     
-    // 今天的新聞優先
     if (aIsToday && !bIsToday) return -1;
     if (!aIsToday && bIsToday) return 1;
     
-    // 其餘按日期排序
     return dateA - dateB;
   });
   
   sortedNews.forEach(news => {
-    // ===== ★★★ 修改點 1：處理日期為空的情況 ★★★ =====
     const newsDate = new Date(news.date);
-    // 檢查日期是否有效 (news.date 存在且 new Date() 不為 Invalid Date)
     const isValidDate = news.date && !isNaN(newsDate.getTime()); 
-    
     const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
     const dayOfWeek = isValidDate ? dayNames[newsDate.getDay()] : '-';
     const dateStr = isValidDate ? `${newsDate.getMonth() + 1}/${newsDate.getDate()}` : '--';
-    
-    // 檢查是否為今天的新聞
     const isToday = isValidDate && newsDate.toDateString() === today.toDateString();
-    // =============================================
 
     const editor = staffData.editor.find(s => s.id == news.editor);
     const video = staffData.video.find(s => s.id == news.video);
     const graphic = staffData.graphic.find(s => s.id == news.graphic);
     
     const card = document.createElement('section');
-    // 今天的新聞自動變成紅色重點新聞，手動設定的重點新聞為紫色
+    card.id = `news-${news.id}`; // 加入 ID 以供跳轉定位
     let cardClass = 'card';
     let titleClass = '';
     
@@ -481,6 +784,11 @@ function renderNews() {
     }
     
     card.className = cardClass;
+    
+    // ===== 備註顯示邏輯 =====
+    const noteHtml = news.note ? `<div class="note">備註：${news.note}</div>` : '';
+    // ============================
+
     card.innerHTML = `
       <button class="edit-btn" onclick="editNews(${news.id})">編輯</button>
       
@@ -497,6 +805,7 @@ function renderNews() {
       </div>
       <div class="content">
         <h2 ${titleClass ? `class="${titleClass}"` : ''}>${news.title}</h2>
+        ${noteHtml}
       </div>
       <aside class="meta">
         <div class="row"><span class="key">編輯：</span>${news.editor || ''}（${editor ? editor.name : '未指派'}）</div>
@@ -526,8 +835,6 @@ function login() {
     document.querySelector('.admin-btn').textContent = '👥 人員管理';
     closeModal('loginModal');
     document.getElementById('adminPassword').value = '';
-    
-    // 創建自定義通知
     showNotification('✅ 登入成功！現在可以編輯新聞內容了。', 'success');
   } else {
     showNotification('❌ 密碼錯誤！請重新輸入。', 'error');
@@ -545,8 +852,29 @@ function editNews(id) {
   
   editingId = id;
   document.getElementById('editTitle').textContent = '📝 編輯新聞';
-  document.getElementById('editDate').value = news.date;
+  
+  // ===== 修正重點：強制格式化日期為 YYYY-MM-DD，確保 input type="date" 能正確顯示 =====
+  if (news.date) {
+    const d = new Date(news.date);
+    if (!isNaN(d.getTime())) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      document.getElementById('editDate').value = `${yyyy}-${mm}-${dd}`;
+    } else {
+      document.getElementById('editDate').value = '';
+    }
+  } else {
+    document.getElementById('editDate').value = '';
+  }
+  // ==============================================================================
+
   document.getElementById('editNewsTitle').value = news.title;
+  
+  // ===== 讀取備註 =====
+  document.getElementById('editNewsNote').value = news.note || ''; 
+  // ========================
+  
   document.getElementById('editAccent').checked = news.accent;
   document.getElementById('deleteBtn').style.display = 'inline-block';
   
@@ -563,6 +891,7 @@ function addNews() {
   document.getElementById('editTitle').textContent = '➕ 新增新聞';
   document.getElementById('editDate').value = '';
   document.getElementById('editNewsTitle').value = '';
+  document.getElementById('editNewsNote').value = ''; // 清空備註
   document.getElementById('editAccent').checked = false;
   document.getElementById('deleteBtn').style.display = 'none';
   
@@ -574,76 +903,78 @@ function addNews() {
   document.getElementById('editModal').classList.add('show');
 }
 
-async function saveNews() { // ===== 修改：async
+async function saveNews() {
   const date = document.getElementById('editDate').value;
   const title = document.getElementById('editNewsTitle').value.trim();
+  const note = document.getElementById('editNewsNote').value.trim(); // 取得備註
   const editor = document.getElementById('editEditor').value;
   const video = document.getElementById('editVideo').value;
   const graphic = document.getElementById('editGraphic').value;
   const accent = document.getElementById('editAccent').checked;
   
-  // ===== ★★★ 修改點 3：只檢查標題是否為空 ★★★ =====
   if (!title) {
     showNotification('⚠️ 請填寫新聞標題！', 'warning');
     return;
   }
-  // =============================================
+  
+  // 如果是新增新聞，記錄今天的日期作為 createdDate
+  // 如果是編輯，保留原有的 createdDate (從 newsData 中查找)
+  let createdDate = '';
   
   if (editingId) {
-    // 編輯現有新聞
+    // 編輯模式：保留原有的建立日期
     const index = newsData.findIndex(n => n.id == editingId);
+    const originalNews = newsData[index];
+    createdDate = originalNews.createdDate || ''; // 如果原本沒有，就留空
+    
     newsData[index] = {
       id: editingId,
-      date, title, editor, video, graphic, accent
+      date, title, note, editor, video, graphic, accent, createdDate
     };
     showNotification('✅ 新聞更新成功！', 'success');
   } else {
-    // 新增新聞
-    // 確保 ID 永遠是數字
+    // 新增模式：記錄今天
     const maxId = newsData.length > 0 ? Math.max(...newsData.map(n => Number(n.id) || 0)) : 0;
     const newId = maxId + 1;
+    createdDate = new Date().toISOString().split('T')[0]; // 格式: YYYY-MM-DD
     
     newsData.push({
       id: newId,
-      date, title, editor, video, graphic, accent
+      date, title, note, editor, video, graphic, accent, createdDate
     });
     showNotification('✅ 新聞新增成功！', 'success');
   }
   
-  await saveData(); // ===== 修改：await
+  await saveData();
   renderNews();
+  // 確保月曆模式也會更新
+  if(document.getElementById('calendarContainer').style.display !== 'none') renderCalendar();
   closeModal('editModal');
 }
 
-function deleteNews() { // ===== 修改：此函數改為異步
-  if (!editingId) {
-    showNotification('❌ 無法刪除：找不到要刪除的新聞！', 'error');
-    return;
-  }
+function deleteNews() {
+  if (!editingId) return;
   
-  // 創建自定義確認對話框
-  showConfirmDialog('⚠️ 確定要完成這則新聞嗎？完成後會移至歷史紀錄。', async () => { // ===== 修改：async
+  showConfirmDialog('⚠️ 確定要完成這則新聞嗎？完成後會移至歷史紀錄。', async () => {
     const newsToDelete = newsData.find(n => n.id == editingId);
     if (newsToDelete) {
-      // 加入歷史紀錄（避免重複）
       const exists = historyData.some(h => h.id == newsToDelete.id && h.date === newsToDelete.date);
       if (!exists) {
         historyData.push({
           ...newsToDelete,
-          archivedDate: new Date().toISOString().split('T')[0] // 記錄歸檔日期
+          archivedDate: new Date().toISOString().split('T')[0]
         });
       }
       
-      // 從當前新聞中移除
       newsData = newsData.filter(n => n.id != editingId);
       
-      await saveData(); // ===== 修改：await
+      await saveData();
       renderNews();
-      updateAdminNewsList(); // 更新管理後台列表
+      // 確保月曆模式也會更新
+      if(document.getElementById('calendarContainer').style.display !== 'none') renderCalendar();
+      updateAdminNewsList();
       closeModal('editModal');
       showNotification('✅ 新聞已完成並移至歷史紀錄！', 'success');
-    } else {
-      showNotification('❌ 刪除失敗：找不到指定的新聞！', 'error');
     }
   });
 }
@@ -655,7 +986,6 @@ function showStaffModal() {
   document.getElementById('staffModal').classList.add('show');
 }
 
-// 更新管理後台的新聞列表
 function updateAdminNewsList() {
   const container = document.getElementById('adminNewsList');
   container.innerHTML = '';
@@ -665,9 +995,7 @@ function updateAdminNewsList() {
     return;
   }
   
-  // 按日期排序顯示
   const sortedNews = [...newsData].sort((a, b) => {
-    // ===== 修改：處理排序時的空日期 =====
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
     const aHasDate = a.date && !isNaN(dateA.getTime());
@@ -681,7 +1009,6 @@ function updateAdminNewsList() {
   });
   
   sortedNews.forEach(news => {
-    // ===== 修改：處理顯示時的空日期 =====
     const newsDate = new Date(news.date);
     const isValidDate = news.date && !isNaN(newsDate.getTime());
     const today = new Date();
@@ -694,7 +1021,6 @@ function updateAdminNewsList() {
     
     const newsItem = document.createElement('div');
     
-    // 決定樣式：今天的新聞為紅色，手動重點新聞為紫色
     let bgColor = '#fff';
     let borderColor = 'var(--line)';
     let titleColor = 'var(--ink)';
@@ -752,7 +1078,6 @@ function updateStaffSelects() {
     const currentValue = select.value;
     select.innerHTML = `<option value="">請選擇${roles[index] === 'editor' ? '編輯' : roles[index] === 'video' ? '影片' : '平面'}人員</option>`;
     
-    // 檢查 staffData[roles[index]] 是否存在
     if (staffData[roles[index]]) {
       staffData[roles[index]].forEach(staff => {
         const option = document.createElement('option');
@@ -761,24 +1086,19 @@ function updateStaffSelects() {
         select.appendChild(option);
       });
     }
-    
     select.value = currentValue;
   });
 }
 
 function updateStaffLists() {
   const roles = ['editor', 'video', 'graphic'];
-  
   roles.forEach(role => {
     const container = document.getElementById(`${role}List`);
     const count = document.getElementById(`${role}Count`);
-    
     container.innerHTML = '';
     
-    // 檢查 staffData[role] 是否存在
     if (staffData[role]) {
       count.textContent = staffData[role].length;
-      
       staffData[role].forEach(staff => {
         const item = document.createElement('div');
         item.className = 'staff-item';
@@ -794,7 +1114,7 @@ function updateStaffLists() {
   });
 }
 
-async function addStaff() { // ===== 修改：async
+async function addStaff() {
   const id = document.getElementById('staffId').value.trim();
   const name = document.getElementById('staffName').value.trim();
   const role = document.getElementById('staffRole').value;
@@ -804,7 +1124,6 @@ async function addStaff() { // ===== 修改：async
     return;
   }
   
-  // 檢查是否已存在
   const exists = Object.values(staffData).some(roleStaff => 
     roleStaff.some(staff => staff.id == id)
   );
@@ -815,73 +1134,56 @@ async function addStaff() { // ===== 修改：async
   }
   
   staffData[role].push({id, name});
-  
   document.getElementById('staffId').value = '';
   document.getElementById('staffName').value = '';
   
   updateStaffLists();
   updateStaffSelects();
-  await saveData(); // ===== 修改：await
+  await saveData();
   showNotification('✅ 人員新增成功！', 'success');
 }
 
-function removeStaff(role, id) { // ===== 修改：此函數改為異步
-  showConfirmDialog('⚠️ 確定要移除這位人員嗎？', async () => { // ===== 修改：async
+function removeStaff(role, id) {
+  showConfirmDialog('⚠️ 確定要移除這位人員嗎？', async () => {
     staffData[role] = staffData[role].filter(staff => staff.id != id);
     updateStaffLists();
     updateStaffSelects();
-    await saveData(); // ===== 修改：await
+    await saveData();
     showNotification('✅ 人員已移除！', 'success');
   });
 }
 
-// Excel下載功能
+// Excel下載與歷史搜尋功能
 function downloadHistoryExcel() {
   if (filteredHistory.length === 0) {
     showNotification('⚠️ 沒有資料可以下載！請先搜尋或確認有歷史紀錄。', 'warning');
     return;
   }
-  
-  // 準備Excel資料
   const excelData = [];
-  
-  // 取得搜尋條件
   const year = document.getElementById('searchYear').value;
   const month = document.getElementById('searchMonth').value;
   const keyword = document.getElementById('searchKeyword').value.trim();
   
-  // 建立檔案名稱
   let fileName = '新聞歷史紀錄';
   const currentDate = new Date().toISOString().split('T')[0];
   
-  if (year || month || keyword) {
-    fileName += '_篩選結果';
-    if (year) fileName += `_${year}年`;
-    if (month) fileName += `_${month}月`;
-    if (keyword) fileName += `_${keyword}`;
-  }
+  if (year || month || keyword) fileName += '_篩選結果';
   fileName += `_${currentDate}.xlsx`;
   
-  // 按日期排序（最新的在前）
   const sortedData = [...filteredHistory].sort((a, b) => {
-    // ===== 修改：處理排序時的空日期 =====
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
     const aHasDate = a.date && !isNaN(dateA.getTime());
     const bHasDate = b.date && !isNaN(dateB.getTime());
-
-    if (aHasDate && !bHasDate) return 1; // 有日期的排在後面 (新->舊)
+    if (aHasDate && !bHasDate) return 1;
     if (!aHasDate && bHasDate) return -1;
     if (!aHasDate && !bHasDate) return 0;
-    
-    return dateB - dateA; // 新的在前
+    return dateB - dateA;
   });
   
-  // 轉換資料格式
   sortedData.forEach((news, index) => {
     const newsDate = new Date(news.date);
     const isValidDate = news.date && !isNaN(newsDate.getTime());
-    
     const editor = staffData.editor.find(s => s.id == news.editor);
     const video = staffData.video.find(s => s.id == news.video);
     const graphic = staffData.graphic.find(s => s.id == news.graphic);
@@ -891,204 +1193,27 @@ function downloadHistoryExcel() {
       '發布日期': news.date || '日期未定',
       '年份': isValidDate ? newsDate.getFullYear() : '',
       '月份': isValidDate ? newsDate.getMonth() + 1 : '',
-      '星期': isValidDate ? ['日', '一', '二', '三', '四', '五', '六'][newsDate.getDay()] : '',
       '新聞標題': news.title,
+      '備註說明': news.note || '', // 新增備註
       '重點新聞': news.accent ? '是' : '否',
-      '編輯人員編號': news.editor || '',
-      '編輯人員姓名': editor ? editor.name : '已離職/未指派',
-      '影片人員編號': news.video || '',
-      '影片人員姓名': video ? video.name : '已離職/未指派',
-      '平面人員編號': news.graphic || '',
-      '平面人員姓名': graphic ? graphic.name : '已離職/未指派',
-      '歸檔日期': news.archivedDate || '手動歸檔',
-      '標題字數': news.title.length
+      '編輯人員': editor ? editor.name : '已離職/未指派',
+      '影片人員': video ? video.name : '已離職/未指派',
+      '平面人員': graphic ? graphic.name : '已離職/未指派',
+      '歸檔日期': news.archivedDate || '手動歸檔'
     });
   });
   
-  // 建立工作簿
   const wb = XLSX.utils.book_new();
-  
-  // 建立工作表
   const ws = XLSX.utils.json_to_sheet(excelData);
-  
-  // 設定欄位寬度
-  const colWidths = [
-    { wch: 6 },   // 序號
-    { wch: 12 },  // 發布日期
-    { wch: 8 },   // 年份
-    { wch: 8 },   // 月份
-    { wch: 8 },   // 星期
-    { wch: 50 },  // 新聞標題
-    { wch: 10 },  // 重點新聞
-    { wch: 12 },  // 編輯人員編號
-    { wch: 15 },  // 編輯人員姓名
-    { wch: 12 },  // 影片人員編號
-    { wch: 15 },  // 影片人員姓名
-    { wch: 12 },  // 平面人員編號
-    { wch: 15 },  // 平面人員姓名
-    { wch: 12 },  // 歸檔日期
-    { wch: 10 }   // 標題字數
-  ];
-  ws['!cols'] = colWidths;
-  
-  // 加入工作表到工作簿
   XLSX.utils.book_append_sheet(wb, ws, '新聞歷史紀錄');
-  
-  // 如果有搜尋條件，建立摘要工作表
-  if (year || month || keyword) {
-    const summaryData = [];
-    
-    // 搜尋條件摘要
-    summaryData.push({
-      '項目': '搜尋條件',
-      '內容': ''
-    });
-    
-    if (year) {
-      summaryData.push({
-        '項目': '年份',
-        '內容': `${year}年`
-      });
-    }
-    
-    if (month) {
-      summaryData.push({
-        '項目': '月份',
-        '內容': `${month}月`
-      });
-    }
-    
-    if (keyword) {
-      summaryData.push({
-        '項目': '關鍵字',
-        '內容': keyword
-      });
-    }
-    
-    summaryData.push({
-      '項目': '搜尋結果',
-      '內容': `共 ${filteredHistory.length} 筆新聞`
-    });
-    
-    summaryData.push({
-      '項目': '下載時間',
-      '內容': new Date().toLocaleString('zh-TW')
-    });
-    
-    // 統計資料
-    summaryData.push({
-      '項目': '',
-      '內容': ''
-    });
-    
-    summaryData.push({
-      '項目': '統計資料',
-      '內容': ''
-    });
-    
-    // 重點新聞統計
-    const accentCount = sortedData.filter(news => news.accent).length;
-    summaryData.push({
-      '項目': '重點新聞數量',
-      '內容': `${accentCount} 筆`
-    });
-    
-    // 人員統計
-    const editorStats = {};
-    const videoStats = {};
-    const graphicStats = {};
-    
-    sortedData.forEach(news => {
-      const editor = staffData.editor.find(s => s.id == news.editor);
-      const video = staffData.video.find(s => s.id == news.video);
-      const graphic = staffData.graphic.find(s => s.id == news.graphic);
-      
-      const editorName = editor ? editor.name : '已離職/未指派';
-      const videoName = video ? video.name : '已離職/未指派';
-      const graphicName = graphic ? graphic.name : '已離職/未指派';
-      
-      editorStats[editorName] = (editorStats[editorName] || 0) + 1;
-      videoStats[videoName] = (videoStats[videoName] || 0) + 1;
-      graphicStats[graphicName] = (graphicStats[graphicName] || 0) + 1;
-    });
-    
-    // 編輯人員統計
-    summaryData.push({
-      '項目': '',
-      '內容': ''
-    });
-    
-    summaryData.push({
-      '項目': '編輯人員統計',
-      '內容': ''
-    });
-    
-    Object.entries(editorStats).forEach(([name, count]) => {
-      summaryData.push({
-        '項目': name,
-        '內容': `${count} 篇`
-      });
-    });
-    
-    // 影片人員統計
-    summaryData.push({
-      '項目': '',
-      '內容': ''
-    });
-    
-    summaryData.push({
-      '項目': '影片人員統計',
-      '內容': ''
-    });
-    
-    Object.entries(videoStats).forEach(([name, count]) => {
-      summaryData.push({
-        '項目': name,
-        '內容': `${count} 篇`
-      });
-    });
-    
-    // 平面人員統計
-    summaryData.push({
-      '項目': '',
-      '內容': ''
-    });
-    
-    summaryData.push({
-      '項目': '平面人員統計',
-      '內容': ''
-    });
-    
-    Object.entries(graphicStats).forEach(([name, count]) => {
-      summaryData.push({
-        '項目': name,
-        '內容': `${count} 篇`
-      });
-    });
-    
-    // 建立摘要工作表
-    const summaryWs = XLSX.utils.json_to_sheet(summaryData);
-    summaryWs['!cols'] = [{ wch: 20 }, { wch: 30 }];
-    XLSX.utils.book_append_sheet(wb, summaryWs, '搜尋摘要');
-  }
-  
-  // 下載檔案
-  try {
-    XLSX.writeFile(wb, fileName);
-    showNotification(`✅ Excel檔案下載成功！\n檔案名稱：${fileName}\n共 ${filteredHistory.length} 筆資料`, 'success');
-  } catch (error) {
-    showNotification('❌ 下載失敗！請檢查瀏覽器是否支援檔案下載功能。', 'error');
-    console.error('Excel下載錯誤:', error);
-  }
+  XLSX.writeFile(wb, fileName);
 }
 
-// Excel匯入功能
-async function importExcel(event) { // ===== 修改：async
+async function importExcel(event) {
   const file = event.target.files[0];
   if (!file) return;
-  
   const reader = new FileReader();
-  reader.onload = async function(e) { // ===== 修改：async
+  reader.onload = async function(e) {
     try {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, {type: 'array'});
@@ -1096,61 +1221,39 @@ async function importExcel(event) { // ===== 修改：async
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
       
       let imported = 0;
-      let errors = [];
-      
-      jsonData.forEach((row, index) => {
+      jsonData.forEach((row) => {
         const id = String(row['員工編號'] || row['編號'] || '').trim();
         const name = String(row['姓名'] || row['名字'] || '').trim();
         const roleText = String(row['職位'] || row['角色'] || '').trim().toLowerCase();
         
-        if (!id || !name) {
-          errors.push(`第${index + 2}行：缺少員工編號或姓名`);
-          return;
-        }
-        
         let targetRole = '';
-        if (roleText.includes('編輯') || roleText.includes('editor')) targetRole = 'editor';
-        else if (roleText.includes('影片') || roleText.includes('video')) targetRole = 'video';
-        else if (roleText.includes('平面') || roleText.includes('graphic')) targetRole = 'graphic';
-        else {
-          errors.push(`第${index + 2}行：無法識別職位「${roleText}」`);
-          return;
-        }
+        if (roleText.includes('編輯')) targetRole = 'editor';
+        else if (roleText.includes('影片')) targetRole = 'video';
+        else if (roleText.includes('平面')) targetRole = 'graphic';
+        else return;
         
-        // 檢查是否已存在
         const exists = Object.values(staffData).some(roleStaff => 
           roleStaff.some(staff => staff.id == id)
         );
         
-        if (!exists) {
+        if (!exists && id && name) {
           staffData[targetRole].push({id, name});
           imported++;
         }
       });
       
-      let message = `✅ 成功匯入 ${imported} 筆人員資料！`;
-      if (errors.length > 0) {
-        message += `\n\n⚠️ 發現 ${errors.length} 個問題：\n${errors.slice(0, 5).join('\n')}`;
-        if (errors.length > 5) {
-          message += `\n... 還有 ${errors.length - 5} 個問題`;
-        }
-      }
-      
-      showNotification(message, 'success');
       updateStaffLists();
       updateStaffSelects();
-      await saveData(); // ===== 修改：await
+      await saveData();
+      showNotification(`✅ 成功匯入 ${imported} 筆人員資料！`, 'success');
     } catch (error) {
-      showNotification('❌ 檔案格式錯誤！請確認Excel檔案格式正確。\n\n建議格式：\n- 員工編號 | 姓名 | 職位\n- 職位請填寫：編輯、影片、平面', 'error');
+      showNotification('❌ 檔案格式錯誤！', 'error');
     }
   };
   reader.readAsArrayBuffer(file);
-  
-  // 清空檔案選擇
   event.target.value = '';
 }
 
-// 歷史紀錄功能
 function showHistoryModal() {
   updateYearOptions();
   clearSearch();
@@ -1161,30 +1264,11 @@ function updateYearOptions() {
   const yearSelect = document.getElementById('searchYear');
   const currentYear = new Date().getFullYear();
   const years = new Set();
-  
-  // 收集所有年份
-  historyData.forEach(news => {
-    // ===== 修改：只處理有日期的 =====
-    if (news.date) {
-      const year = new Date(news.date).getFullYear();
-      years.add(year);
-    }
-  });
-  
-  // 從2025年開始，每年自動增加到當前年份+1
-  const startYear = 2024; // 修改為 2024
-  const endYear = Math.max(currentYear + 1, startYear);
-  for (let i = startYear; i <= endYear; i++) {
-    years.add(i);
-  }
-  
+  historyData.forEach(news => { if (news.date) years.add(new Date(news.date).getFullYear()); });
+  const startYear = 2024;
+  for (let i = startYear; i <= currentYear + 1; i++) years.add(i);
   yearSelect.innerHTML = '<option value="">選擇年份</option>';
-  [...years].sort((a, b) => b - a).forEach(year => {
-    const option = document.createElement('option');
-    option.value = year;
-    option.textContent = `${year}年`;
-    yearSelect.appendChild(option);
-  });
+  [...years].sort((a, b) => b - a).forEach(year => yearSelect.innerHTML += `<option value="${year}">${year}年</option>`);
 }
 
 function searchHistory() {
@@ -1193,210 +1277,110 @@ function searchHistory() {
   const keyword = document.getElementById('searchKeyword').value.trim().toLowerCase();
   
   filteredHistory = historyData.filter(news => {
-    // ===== 修改：處理搜尋時的空日期 =====
     const newsDate = new Date(news.date);
     const isValidDate = news.date && !isNaN(newsDate.getTime());
-
-    // 年份篩選
-    if (year) {
-      if (!isValidDate) return false; // 如果要求年份，沒有日期的就過濾掉
-      if (newsDate.getFullYear() !== parseInt(year)) return false;
-    }
-    
-    // 月份篩選
-    if (month) {
-      if (!isValidDate) return false; // 如果要求月份，沒有日期的就過濾掉
-      if ((newsDate.getMonth() + 1) !== parseInt(month)) return false;
-    }
-    
-    // 關鍵字篩選
-    if (keyword && !news.title.toLowerCase().includes(keyword)) {
-      return false;
-    }
-    
+    if (year && (!isValidDate || newsDate.getFullYear() !== parseInt(year))) return false;
+    if (month && (!isValidDate || (newsDate.getMonth() + 1) !== parseInt(month))) return false;
+    if (keyword && !news.title.toLowerCase().includes(keyword) && !(news.note || '').toLowerCase().includes(keyword)) return false;
     return true;
   });
-  
   displayHistoryResults();
-  
-  // 顯示搜尋結果統計
-  const resultsSpan = document.getElementById('searchResults');
-  if (year || month || keyword) {
-    resultsSpan.textContent = `找到 ${filteredHistory.length} 筆符合條件的新聞`;
-  } else {
-    resultsSpan.textContent = '';
-  }
 }
 
 function clearSearch() {
   document.getElementById('searchYear').value = '';
   document.getElementById('searchMonth').value = '';
   document.getElementById('searchKeyword').value = '';
-  document.getElementById('searchResults').textContent = '';
-  
   filteredHistory = [...historyData];
   displayHistoryResults();
 }
 
 function displayHistoryResults() {
   const container = document.getElementById('historyList');
-  const countSpan = document.getElementById('historyCount');
-  
+  document.getElementById('historyCount').textContent = filteredHistory.length;
   container.innerHTML = '';
-  countSpan.textContent = filteredHistory.length;
   
   if (filteredHistory.length === 0) {
     container.innerHTML = '<p style="text-align:center; color:var(--muted); margin:20px 0">沒有找到符合條件的歷史新聞</p>';
     return;
   }
   
-  // 按日期排序（最新的在前）
   const sortedHistory = [...filteredHistory].sort((a, b) => {
-    // ===== 修改：處理排序時的空日期 =====
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
     const aHasDate = a.date && !isNaN(dateA.getTime());
     const bHasDate = b.date && !isNaN(dateB.getTime());
-
-    if (aHasDate && !bHasDate) return 1; // 有日期的排在後面 (新->舊)
+    if (aHasDate && !bHasDate) return 1;
     if (!aHasDate && bHasDate) return -1;
     if (!aHasDate && !bHasDate) return 0;
-    
-    return dateB - dateA; // 新的在前
+    return dateB - dateA;
   });
   
   sortedHistory.forEach(news => {
-    // ===== 修改：處理顯示時的空日期 =====
     const newsDate = new Date(news.date);
     const isValidDate = news.date && !isNaN(newsDate.getTime());
-    
     const editor = staffData.editor.find(s => s.id == news.editor);
     const video = staffData.video.find(s => s.id == news.video);
     const graphic = staffData.graphic.find(s => s.id == news.graphic);
     
-    const historyItem = document.createElement('div');
-    
-    // 歷史紀錄中的重點新聞顯示為紫色
+    const div = document.createElement('div');
     const bgColor = news.accent ? 'var(--soft-purple)' : '#fff';
     const borderColor = news.accent ? 'var(--soft-purple-line)' : 'var(--line)';
-    const titleColor = news.accent ? 'var(--purple)' : 'var(--ink)';
-    const starIcon = news.accent ? '🟣' : '';
     
-    historyItem.style.cssText = `
-      border: 1px solid ${borderColor}; border-radius: 8px; padding: 12px; margin: 8px 0;
-      background: ${bgColor};
-    `;
-    
-    historyItem.innerHTML = `
+    div.style.cssText = `border: 1px solid ${borderColor}; border-radius: 8px; padding: 12px; margin: 8px 0; background: ${bgColor};`;
+    div.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px">
         <div style="flex: 1">
           <div style="font-size: 14px; color: var(--muted); margin-bottom: 4px">
-            📅 發布日期：${isValidDate ? news.date : '日期未定'} ${starIcon}
-            ${news.archivedDate ? `<span style="margin-left: 12px">🗂️ 歸檔：${news.archivedDate}</span>` : ''}
+            📅 ${isValidDate ? news.date : '日期未定'} ${news.archivedDate ? `歸檔:${news.archivedDate}` : ''}
           </div>
-          <div style="font-weight: 600; margin-bottom: 8px; color: ${titleColor}">
-            ${news.title}
-          </div>
+          <div style="font-weight: 600; margin-bottom: 4px; color: var(--ink)">${news.title}</div>
+          ${news.note ? `<div style="font-size: 13px; color: var(--muted); margin-bottom: 8px">${news.note}</div>` : ''}
           <div style="font-size: 12px; color: var(--muted)">
-            編輯：${news.editor || ''}（${editor ? editor.name : '未指派'}） | 
-            影片：${news.video || ''}（${video ? video.name : '未指派'}） | 
-            平面：${news.graphic || ''}（${graphic ? graphic.name : '未指派'}）
+            編輯：${editor ? editor.name : '未指派'} | 影片：${video ? video.name : '未指派'} | 平面：${graphic ? graphic.name : '未指派'}
           </div>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 4px">
-          <button onclick="restoreNews('${news.id}', '${news.date || ''}')" style="
-            background: var(--green); color: white; border: none; padding: 4px 8px;
-            border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;
-          ">復原</button>
-          <button onclick="permanentDeleteNews('${news.id}', '${news.date || ''}')" style="
-            background: var(--accent); color: white; border: none; padding: 4px 8px;
-            border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;
-          ">永久刪除</button>
+        <div>
+           <button onclick="restoreNews('${news.id}', '${news.date || ''}')" style="background:var(--green);color:white;border:none;padding:4px 8px;border-radius:4px;font-size:11px;">復原</button>
+           <button onclick="permanentDeleteNews('${news.id}', '${news.date || ''}')" style="background:var(--accent);color:white;border:none;padding:4px 8px;border-radius:4px;font-size:11px;margin-top:4px;">刪除</button>
         </div>
       </div>
     `;
-    
-    container.appendChild(historyItem);
+    container.appendChild(div);
   });
 }
 
-function restoreNews(id, date) { // ===== 修改：此函數改為異步
-  if (!isAdminMode) {
-    showNotification('❌ 請先登入管理後台！', 'error');
-    return;
-  }
-  
-  showConfirmDialog('⚠️ 確定要復原這則新聞到當前新聞列表嗎？', async () => { // ===== 修改：async
-    // ===== 修改：處理空日期的比對 =====
+function restoreNews(id, date) {
+  if (!isAdminMode) return showNotification('❌ 請先登入管理後台！', 'error');
+  showConfirmDialog('⚠️ 確定要復原這則新聞嗎？', async () => {
     const historyNews = historyData.find(h => h.id == id && (h.date || '') === date);
     if (historyNews) {
-      // 檢查是否已存在於當前新聞中
-      const exists = newsData.some(n => n.id == historyNews.id && (n.date || '') === (historyNews.date || ''));
-      if (exists) {
-        showNotification('⚠️ 該新聞已存在於當前新聞列表中！', 'warning');
-        return;
-      }
-      
-      // 復原到當前新聞（移除歸檔日期）
       const { archivedDate, ...restoredNews } = historyNews;
       newsData.push(restoredNews);
-      
-      // 從歷史紀錄中移除
       historyData = historyData.filter(h => !(h.id == id && (h.date || '') === date));
-      
-      // 同時更新過濾後的歷史紀錄
       filteredHistory = filteredHistory.filter(h => !(h.id == id && (h.date || '') === date));
-      
-      await saveData(); // ===== 修改：await
-      renderNews(); // 更新主頁面
-      updateAdminNewsList(); // 更新管理後台列表
-      
-      // 立即關閉歷史紀錄視窗，回到主頁面
+      await saveData();
+      renderNews();
+      updateAdminNewsList();
       closeModal('historyModal');
-      
-      // 延遲顯示成功訊息，確保視窗已關閉
-      setTimeout(() => {
-        showNotification('✅ 新聞已復原到主頁面！', 'success');
-      }, 100);
-    } else {
-      showNotification('❌ 復原失敗：找不到指定的新聞！', 'error');
+      showNotification('✅ 新聞已復原！', 'success');
     }
   });
 }
 
-function permanentDeleteNews(id, date) { // ===== 修改：此函數改為異步
-  if (!isAdminMode) {
-    showNotification('❌ 請先登入管理後台！', 'error');
-    return;
-  }
-  
-  showConfirmDialog('⚠️ 確定要永久刪除這則新聞嗎？此操作無法復原！', async () => { // ===== 修改：async
-    const originalLength = historyData.length;
-    
-    // 從歷史紀錄中完全移除
+function permanentDeleteNews(id, date) {
+  if (!isAdminMode) return showNotification('❌ 請先登入管理後台！', 'error');
+  showConfirmDialog('⚠️ 確定要永久刪除嗎？', async () => {
     historyData = historyData.filter(h => !(h.id == id && (h.date || '') === date));
-    
-    // 同時更新過濾後的歷史紀錄
     filteredHistory = filteredHistory.filter(h => !(h.id == id && (h.date || '') === date));
-    
-    if (historyData.length < originalLength) {
-      await saveData(); // ===== 修改：await
-      displayHistoryResults(); // 重新顯示結果
-      showNotification('✅ 新聞已永久刪除！', 'success');
-    } else {
-      showNotification('❌ 刪除失敗：找不到指定的新聞！', 'error');
-    }
+    await saveData();
+    displayHistoryResults();
+    showNotification('✅ 已永久刪除！', 'success');
   });
 }
 
-// =================================================================
-// ===== 修改：資料儲存與載入 =====
-
-/**
- * [修改] 儲存所有資料到 Google Apps Script
- */
+// 儲存資料
 async function saveData() {
-  console.log('儲存資料到 Google Sheet...');
   showLoading(true);
   try {
     const payload = {
@@ -1405,236 +1389,74 @@ async function saveData() {
       staffData: staffData,
       historyData: historyData
     };
-    
     const response = await fetch(GAS_WEB_APP_URL, {
       method: 'POST',
       body: JSON.stringify(payload),
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8', // 使用 text/plain 避免 CORS preflight
-      }
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     });
-    
     const result = await response.json();
-    
-    if (result.status !== 'success') {
-      console.error('儲存失敗:', result);
-      showNotification('❌ 儲存資料失敗！\n' + result.message, 'error');
-    } else {
-      console.log('儲存成功！');
-      // 儲存成功時不需要顯示通知，避免干擾
-    }
-    
+    if (result.status !== 'success') throw new Error(result.message);
   } catch (error) {
-    console.error('saveData 發生錯誤:', error);
-    showNotification('❌ 儲存資料時發生網路錯誤！', 'error');
+    showNotification('❌ 儲存資料失敗！', 'error');
+    console.error(error);
   } finally {
     showLoading(false);
   }
 }
 
-/**
- * [修改] 從 Google Apps Script 載入所有資料
- */
+// 載入資料
 async function loadData() {
-  console.log('從 Google Sheet 載入資料...');
   showLoading(true);
-  
-  // 檢查 URL 是否已設定
-  if (GAS_WEB_APP_URL === "PASTE_YOUR_APPS_SCRIPT_URL_HERE") {
-    showNotification('❌ 錯誤：您尚未設定 Google Apps Script 網址！\n請修改 index.html 中的 GAS_WEB_APP_URL 變數。', 'error');
-    container.innerHTML = '<h2 style="text-align:center; color:var(--accent)">設定錯誤，請檢查主控台 (F12)</h2>';
-    showLoading(false);
-    return;
-  }
-  
   try {
     const response = await fetch(`${GAS_WEB_APP_URL}?action=loadAll`);
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
     const data = await response.json();
+    if (data.status === 'error') throw new Error(data.message);
     
-    if (data.status === 'error') {
-       throw new Error(`API Error: ${data.message}`);
-    }
-
-    // 將載入的資料存入全域變數
     newsData = data.news || [];
     staffData = data.staff || { editor: [], video: [], graphic: [] };
     historyData = data.history || [];
     
-    console.log('資料載入成功:', data);
-    
-    // 執行自動刪除過期新聞
     await autoDeleteExpiredNews();
-    
-    // 載入資料並清理完畢後，才渲染畫面
-    renderNews(); 
-    
+    renderNews();
   } catch (error) {
-    console.error('loadData 發生錯誤:', error);
-    showNotification(`❌ 載入資料失敗！\n${error.message}\n請檢查 GAS 網址是否正確，以及 Google Sheet 權限是否設定為「任何人」可存取。`, 'error');
-    document.getElementById('newsContainer').innerHTML = '<h2 style="text-align:center; color:var(--accent)">資料載入失敗，請F12檢查主控台。</h2>';
+    showNotification('❌ 載入資料失敗！', 'error');
+    document.getElementById('newsContainer').innerHTML = '<h2 style="text-align:center;color:var(--accent)">載入失敗</h2>';
   } finally {
     showLoading(false);
   }
 }
-// =================================================================
 
+// UI 輔助
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.addEventListener('click', e => { if(e.target.classList.contains('modal')) e.target.classList.remove('show'); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show')); });
 
-// 通用功能
-function closeModal(modalId) {
-  document.getElementById(modalId).classList.remove('show');
+function showNotification(msg, type='info') {
+  const div = document.createElement('div');
+  div.className = 'notification';
+  div.textContent = msg;
+  div.style.cssText = `position:fixed;top:80px;right:20px;background:${type=='error'?'#DC2626':type=='success'?'#059669':'#2563EB'};color:white;padding:16px;border-radius:8px;z-index:10000;animation:slideIn 0.3s;`;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 3000);
 }
 
-// 點擊模態框外部關閉
-document.addEventListener('click', function(e) {
-  if (e.target.classList.contains('modal')) {
-    e.target.classList.remove('show');
-  }
-});
-
-// 鍵盤快捷鍵
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    const modals = document.querySelectorAll('.modal.show');
-    modals.forEach(modal => modal.classList.remove('show'));
-  }
-});
-
-// 自定義通知系統
-function showNotification(message, type = 'info') {
-  // 移除現有通知
-  const existingNotification = document.querySelector('.notification');
-  if (existingNotification) {
-    existingNotification.remove();
-  }
-  
-  const notification = document.createElement('div');
-  notification.className = 'notification';
-  notification.textContent = message;
-  
-  const colors = {
-    success: '#059669',
-    error: '#DC2626',
-    warning: '#D97706',
-    info: '#2563EB'
-  };
-  
-  notification.style.cssText = `
-    position: fixed;
-    top: 80px;
-    right: 20px;
-    background: ${colors[type]};
-    color: white;
-    padding: 16px 24px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    z-index: 10000;
-    max-width: 400px;
-    white-space: pre-line;
-    animation: slideIn 0.3s ease-out;
-  `;
-  
-  // 添加動畫樣式
-  if (!document.querySelector('#notification-styles')) {
-    const style = document.createElement('style');
-    style.id = 'notification-styles';
-    style.textContent = `
-      @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-      @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-  
-  document.body.appendChild(notification);
-  
-  // 3秒後自動消失
-  setTimeout(() => {
-    notification.style.animation = 'slideOut 0.3s ease-in';
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.remove();
-      }
-    }, 300);
-  }, 3000);
-}
-
-// 自定義確認對話框
-function showConfirmDialog(message, onConfirm) {
-  // 移除現有對話框
-  const existingDialog = document.querySelector('.confirm-dialog');
-  if (existingDialog) {
-    existingDialog.remove();
-  }
-  
+function showConfirmDialog(msg, onConfirm) {
   const overlay = document.createElement('div');
   overlay.className = 'confirm-dialog';
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10001;
-  `;
-  
-  const dialog = document.createElement('div');
-  dialog.style.cssText = `
-    background: white;
-    padding: 32px;
-    border-radius: 16px;
-    max-width: 400px;
-    width: 90%;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  `;
-  
-  dialog.innerHTML = `
-    <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.5; color: var(--ink);">${message}</p>
-    <div>
-      <button class="btn danger" onclick="confirmAction()">確定</button>
-      <button class="btn secondary" onclick="cancelAction()">取消</button>
-    </div>
-  `;
-  
-  overlay.appendChild(dialog);
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10001;';
+  overlay.innerHTML = `<div style="background:white;padding:32px;border-radius:16px;text-align:center;"><p style="margin-bottom:24px;">${msg}</p><button class="btn danger" onclick="confirmAction()">確定</button> <button class="btn secondary" onclick="cancelAction()">取消</button></div>`;
   document.body.appendChild(overlay);
   
-  // 全域函數處理確認和取消
-  window.confirmAction = function() {
-    overlay.remove();
-    onConfirm(); // onConfirm 現在可能是 async
-    delete window.confirmAction;
-    delete window.cancelAction;
-  };
-  
-  window.cancelAction = function() {
-    overlay.remove();
-    delete window.confirmAction;
-    delete window.cancelAction;
-  };
-  
-  // 點擊外部關閉
-  overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) {
-      window.cancelAction();
-    }
-  });
+  window.confirmAction = () => { overlay.remove(); onConfirm(); };
+  window.cancelAction = () => { overlay.remove(); };
+  overlay.onclick = e => { if(e.target===overlay) window.cancelAction(); };
 }
+
+// 注入動畫樣式
+const style = document.createElement('style');
+style.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`;
+document.head.appendChild(style);
 </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'993026a7b3b4f21c',t:'MTc2MTIxMTE0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
+
