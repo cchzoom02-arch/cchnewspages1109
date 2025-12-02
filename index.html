@@ -3,7 +3,7 @@
  <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>新聞發布業務進度</title>
+  <title>新聞發布業務進度v2.0</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800&amp;display=swap" rel="stylesheet">
   <style>
   :root{
@@ -59,8 +59,12 @@
     border-color: var(--blue);
   }
 
+  /* --- 顏色主題樣式 (新增 Green) --- */
   .card.accent{border-color:var(--soft-red-line); background:var(--soft-red)}
   .card.purple{border-color:var(--soft-purple-line); background:var(--soft-purple)}
+  /* 新增：綠色卡片樣式 */
+  .card.green{border-color:var(--soft-green-line); background:var(--soft-green)}
+
   .date{
     padding-right:20px; border-right:2px solid var(--line);
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -68,17 +72,27 @@
   }
   .date .label,.date .weekday{font-size:14px;color:var(--muted);letter-spacing:1px}
   .date .day{font-size:56px;font-weight:800;line-height:1}
+  
+  /* 日期顏色連動 */
   .card.accent .date .label,
   .card.accent .date .day,
   .card.accent .date .weekday{color:var(--accent)}
+  
   .card.purple .date .label,
   .card.purple .date .day,
   .card.purple .date .weekday{color:var(--purple)}
+
+  /* 新增：綠色日期文字顏色 */
+  .card.green .date .label,
+  .card.green .date .day,
+  .card.green .date .weekday{color:var(--green)}
   
   .content{display:flex; flex-direction: column; justify-content: center;}
   .content h2{margin:0; font-size:40px; line-height:1.15; font-weight:800}
   .content h2.red{color:var(--accent)}
   .content h2.purple{color:var(--purple)}
+  /* 新增：綠色標題顏色 */
+  .content h2.green{color:var(--green)}
   
   /* 備註樣式 */
   .content .note{
@@ -312,7 +326,7 @@
   <div class="wrap">
    
    <div class="header-area">
-     <h1>新聞發布業務進度</h1>
+     <h1>新聞發布業務進度v2.0</h1>
      <div class="view-toggle">
        <button class="view-btn active" onclick="switchView('board')" id="btnBoard">看板模式</button>
        <button class="view-btn" onclick="switchView('calendar')" id="btnCalendar">月曆模式</button>
@@ -436,7 +450,7 @@
 // =================================================================
 // ===== 設定區 =====
 // ！！！請在此貼上您的 Google Apps Script 網址！！！
-const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMhVt5lirT9hc9br0HpdXklVRm8JBbm6DKVfJbDVqRihdGA_8A4kh42kBpC5zIByRv/exec";
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbybhnTeV7_UIC49sGQzgbwYZ5Hoa7596kkYk_LFPVfiinPjYZJH0s8D6QOPbvJL09EQ/exec";
 // =================================================================
 
 // 全域變數
@@ -553,16 +567,20 @@ function renderCalendar() {
       event.className = 'calendar-event';
       
       // ===== 文字顏色邏輯 =====
-      // 1. 判斷是否為「新增兩天內」(最優先，綠色字)
+      // 1. 判斷是否為「新增或編輯兩天內」(最優先，綠色字)
       let isNewlyAdded = false;
-      if (news.createdDate) {
-        const createdDate = new Date(news.createdDate);
-        createdDate.setHours(0,0,0,0);
-        const diffTime = Math.abs(today - createdDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        if (diffDays <= 1) { 
-           isNewlyAdded = true;
-        }
+      const checkRecent = (dateStr) => {
+          if(!dateStr) return false;
+          const targetDate = new Date(dateStr);
+          targetDate.setHours(0,0,0,0);
+          const diffTime = Math.abs(today - targetDate);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+          return diffDays <= 1;
+      };
+
+      // 檢查 建立日期 OR 更新日期
+      if (checkRecent(news.createdDate) || checkRecent(news.updatedDate)) {
+         isNewlyAdded = true;
       }
 
       // 2. 判斷是否為「今天」(紅色字)
@@ -615,12 +633,17 @@ function renderCalendar() {
       
       // 未定日期的文字顏色邏輯 (綠 > 紫 > 黑) - 沒有「當日」的概念
       let isNewlyAdded = false;
-      if (news.createdDate) {
-        const createdDate = new Date(news.createdDate);
-        createdDate.setHours(0,0,0,0);
-        const diffTime = Math.abs(today - createdDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        if (diffDays <= 1) isNewlyAdded = true;
+      const checkRecent = (dateStr) => {
+          if(!dateStr) return false;
+          const targetDate = new Date(dateStr);
+          targetDate.setHours(0,0,0,0);
+          const diffTime = Math.abs(today - targetDate);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+          return diffDays <= 1;
+      };
+
+      if (checkRecent(news.createdDate) || checkRecent(news.updatedDate)) {
+          isNewlyAdded = true;
       }
 
       if (isNewlyAdded) event.classList.add('text-green');
@@ -738,6 +761,10 @@ function renderNews() {
   scheduleAutoDelete();
   
   const today = new Date();
+  // 為了計算新增兩天內，將時間歸零
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0,0,0,0);
+  
   const sortedNews = [...newsData].sort((a, b) => {
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
@@ -775,7 +802,30 @@ function renderNews() {
     let cardClass = 'card';
     let titleClass = '';
     
-    if (isToday) {
+    // ===== 綠色看板邏輯：新增 或 編輯 兩天內 =====
+    let isNewlyAdded = false;
+    
+    // 定義檢查日期的函式 (檢查是否在今天或昨天)
+    const checkRecent = (dateStr) => {
+        if(!dateStr) return false;
+        const targetDate = new Date(dateStr);
+        targetDate.setHours(0,0,0,0);
+        const diffTime = Math.abs(todayMidnight - targetDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        return diffDays <= 1; // 0=今天, 1=昨天
+    };
+
+    // 檢查「建立日期」或「更新日期」
+    if (checkRecent(news.createdDate) || checkRecent(news.updatedDate)) {
+        isNewlyAdded = true;
+    }
+    // ==========================================
+    
+    // 設定樣式優先級：綠(新/更新) > 紅(今天) > 紫(重點)
+    if (isNewlyAdded) {
+        cardClass += ' green';
+        titleClass = 'green';
+    } else if (isToday) {
       cardClass += ' accent';
       titleClass = 'red';
     } else if (news.accent) {
@@ -918,25 +968,27 @@ async function saveNews() {
   }
   
   // 如果是新增新聞，記錄今天的日期作為 createdDate
-  // 如果是編輯，保留原有的 createdDate (從 newsData 中查找)
-  let createdDate = '';
+  // 如果是編輯，保留原有的 createdDate，並新增 updatedDate
   
   if (editingId) {
-    // 編輯模式：保留原有的建立日期
+    // 編輯模式：保留原有的建立日期，並加入更新日期
     const index = newsData.findIndex(n => n.id == editingId);
     const originalNews = newsData[index];
-    createdDate = originalNews.createdDate || ''; // 如果原本沒有，就留空
+    const createdDate = originalNews.createdDate || ''; // 如果原本沒有，就留空
+    const updatedDate = new Date().toISOString().split('T')[0]; // 設定今天為更新日期
     
     newsData[index] = {
       id: editingId,
-      date, title, note, editor, video, graphic, accent, createdDate
+      date, title, note, editor, video, graphic, accent, 
+      createdDate, 
+      updatedDate // 加入 updatedDate
     };
     showNotification('✅ 新聞更新成功！', 'success');
   } else {
     // 新增模式：記錄今天
     const maxId = newsData.length > 0 ? Math.max(...newsData.map(n => Number(n.id) || 0)) : 0;
     const newId = maxId + 1;
-    createdDate = new Date().toISOString().split('T')[0]; // 格式: YYYY-MM-DD
+    const createdDate = new Date().toISOString().split('T')[0]; // 格式: YYYY-MM-DD
     
     newsData.push({
       id: newId,
